@@ -1,0 +1,2 @@
+backend/auth-service/.env.example
+backend/auth-service/src/main/resources/application.yml
