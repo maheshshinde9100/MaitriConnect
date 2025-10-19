@@ -1,2 +1,8 @@
 backend/auth-service/.env.example
 backend/auth-service/src/main/resources/application.yml
+required zip/auth-service.zip
+required zip/service-discovery.zip
+required zip/notification-service.zip
+required zip/call-service.zip
+required zip/chat-service.zip
+required zip/api-gateway.zip
