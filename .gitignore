@@ -6,3 +6,4 @@ required zip/notification-service.zip
 required zip/call-service.zip
 required zip/chat-service.zip
 required zip/api-gateway.zip
+backend/chat-service/src/main/resources/application.properties
