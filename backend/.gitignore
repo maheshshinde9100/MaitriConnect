@@ -1,5 +1,5 @@
 .idea
-api-gateway
-call-service
-notification-service
-service-discovery
+# api-gateway
+# call-service
+# notification-service
+# service-discovery
