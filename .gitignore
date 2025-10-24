@@ -7,3 +7,5 @@ required zip/call-service.zip
 required zip/chat-service.zip
 required zip/api-gateway.zip
 backend/chat-service/src/main/resources/application.properties
+backend/chat-service/.env.example
+backend/chat-service/src/main/resources/application.yml
