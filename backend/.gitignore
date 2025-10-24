@@ -1,5 +1,11 @@
 .idea
 api-gateway
-call-service
+auth-service
+chat-service
 notification-service
+call-service
 service-discovery
+docker-compose.yml
+PROJECT_COMPLETION_SUMMARY.md
+QUICK_START.md
+README.md
