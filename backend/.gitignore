@@ -1,11 +1,7 @@
 .idea
-api-gateway
-auth-service
-chat-service
-notification-service
-call-service
-service-discovery
+# api-gateway
+# service-discovery
 docker-compose.yml
-PROJECT_COMPLETION_SUMMARY.md
-QUICK_START.md
-README.md
+# PROJECT_COMPLETION_SUMMARY.md
+# QUICK_START.md
+# README.md
