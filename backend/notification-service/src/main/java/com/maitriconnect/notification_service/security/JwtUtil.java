@@ -1,4 +1,4 @@
-package com.maitriconnect.chat_service.security;
+package com.maitriconnect.notification_service.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

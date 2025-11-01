@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -21,15 +25,22 @@ public class MessageController {
     
     private final MessageService messageService;
     
-    // TODO: Replace with actual authentication from JWT token
-    private static final String MOCK_USER_ID = "user123";
-    private static final String MOCK_USER_NAME = "Test User";
+    private String getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
+    }
+    
+    private String getCurrentUserName() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> details = (Map<String, Object>) authentication.getDetails();
+        return details != null ? (String) details.get("displayName") : "Unknown";
+    }
     
     @PostMapping
     public ResponseEntity<ApiResponse<MessageResponse>> sendMessage(
             @Valid @RequestBody MessageRequest request) {
         log.info("POST /api/messages - Send message to room: {}", request.getRoomId());
-        MessageResponse response = messageService.sendMessage(request, MOCK_USER_ID, MOCK_USER_NAME);
+        MessageResponse response = messageService.sendMessage(request, getCurrentUserId(), getCurrentUserName());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Message sent successfully", response));
@@ -41,7 +52,7 @@ public class MessageController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         log.info("GET /api/messages/room/{} - Get messages (page: {}, size: {})", roomId, page, size);
-        PageResponse<MessageResponse> response = messageService.getRoomMessages(roomId, MOCK_USER_ID, page, size);
+        PageResponse<MessageResponse> response = messageService.getRoomMessages(roomId, getCurrentUserId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
     
@@ -53,7 +64,7 @@ public class MessageController {
             @RequestParam(defaultValue = "50") int size) {
         log.info("GET /api/messages/room/{}/search - Search: '{}' (page: {}, size: {})", 
                 roomId, query, page, size);
-        PageResponse<MessageResponse> response = messageService.searchMessages(roomId, query, MOCK_USER_ID, page, size);
+        PageResponse<MessageResponse> response = messageService.searchMessages(roomId, query, getCurrentUserId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
     
@@ -62,14 +73,14 @@ public class MessageController {
             @PathVariable String messageId,
             @RequestParam String content) {
         log.info("PUT /api/messages/{} - Update message", messageId);
-        MessageResponse response = messageService.updateMessage(messageId, content, MOCK_USER_ID);
+        MessageResponse response = messageService.updateMessage(messageId, content, getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success("Message updated successfully", response));
     }
     
     @DeleteMapping("/{messageId}")
     public ResponseEntity<ApiResponse<Void>> deleteMessage(@PathVariable String messageId) {
         log.info("DELETE /api/messages/{} - Delete message", messageId);
-        messageService.deleteMessage(messageId, MOCK_USER_ID);
+        messageService.deleteMessage(messageId, getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success("Message deleted successfully", null));
     }
     
@@ -79,7 +90,7 @@ public class MessageController {
             @Valid @RequestBody ReactionRequest request) {
         log.info("POST /api/messages/{}/reactions - Add reaction: {}", messageId, request.getEmoji());
         MessageResponse response = messageService.addReaction(messageId, request.getEmoji(), 
-                MOCK_USER_ID, MOCK_USER_NAME);
+                getCurrentUserId(), getCurrentUserName());
         return ResponseEntity.ok(ApiResponse.success("Reaction added successfully", response));
     }
     
@@ -88,28 +99,28 @@ public class MessageController {
             @PathVariable String messageId,
             @PathVariable String emoji) {
         log.info("DELETE /api/messages/{}/reactions/{} - Remove reaction", messageId, emoji);
-        MessageResponse response = messageService.removeReaction(messageId, emoji, MOCK_USER_ID);
+        MessageResponse response = messageService.removeReaction(messageId, emoji, getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success("Reaction removed successfully", response));
     }
     
     @PostMapping("/{messageId}/read")
     public ResponseEntity<ApiResponse<Void>> markMessageAsRead(@PathVariable String messageId) {
         log.info("POST /api/messages/{}/read - Mark as read", messageId);
-        messageService.markMessageAsRead(messageId, MOCK_USER_ID, MOCK_USER_NAME);
+        messageService.markMessageAsRead(messageId, getCurrentUserId(), getCurrentUserName());
         return ResponseEntity.ok(ApiResponse.success("Message marked as read", null));
     }
     
     @PostMapping("/room/{roomId}/read-all")
     public ResponseEntity<ApiResponse<Void>> markRoomMessagesAsRead(@PathVariable String roomId) {
         log.info("POST /api/messages/room/{}/read-all - Mark all as read", roomId);
-        messageService.markRoomMessagesAsRead(roomId, MOCK_USER_ID, MOCK_USER_NAME);
+        messageService.markRoomMessagesAsRead(roomId, getCurrentUserId(), getCurrentUserName());
         return ResponseEntity.ok(ApiResponse.success("All messages marked as read", null));
     }
     
     @GetMapping("/room/{roomId}/unread-count")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(@PathVariable String roomId) {
         log.info("GET /api/messages/room/{}/unread-count", roomId);
-        Long count = messageService.getUnreadMessageCount(roomId, MOCK_USER_ID);
+        Long count = messageService.getUnreadMessageCount(roomId, getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success(count));
     }
 }

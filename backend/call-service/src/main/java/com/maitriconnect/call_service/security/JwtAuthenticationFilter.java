@@ -1,4 +1,4 @@
-package com.maitriconnect.chat_service.security;
+package com.maitriconnect.call_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
