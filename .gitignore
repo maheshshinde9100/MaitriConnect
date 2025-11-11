@@ -9,3 +9,10 @@ required zip/api-gateway.zip
 backend/chat-service/src/main/resources/application.properties
 backend/chat-service/.env.example
 backend/chat-service/src/main/resources/application.yml
+backend/AUTH_SERVICE_COMPLETE_SUMMARY.txt
+backend/AUTH_SERVICE_FIXED_AND_READY.txt
+backend/AUTH_SERVICE_READY.txt
+backend/COMPLETE_TESTING_GUIDE.txt
+backend/auth-service/BUILD_FIX_APPLIED.txt
+backend/auth-service/JWT_FIX_APPLIED.txt
+backend/auth-service/TROUBLESHOOTING.md

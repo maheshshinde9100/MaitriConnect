@@ -1,0 +1,98 @@
+========================================
+AUTH SERVICE - QUICK REFERENCE
+========================================
+
+📁 LOCATION: auth-service/
+
+========================================
+⚡ QUICK START
+========================================
+
+1. Configure:
+   copy .env.example .env
+   notepad .env
+
+2. Build:
+   fix-build.bat
+
+3. Run:
+   run.bat
+
+4. Test:
+   test-api.bat
+
+========================================
+🔧 SCRIPTS
+========================================
+
+build.bat          - Build the service
+fix-build.bat      - Fix build issues
+run.bat            - Run the service
+test-api.bat       - Test all endpoints
+
+========================================
+📚 DOCUMENTATION
+========================================
+
+SETUP.md           - Complete setup guide
+TROUBLESHOOTING.md - Fix common issues
+BUILD_FIX_APPLIED.txt - Build fix details
+
+========================================
+🌐 ENDPOINTS
+========================================
+
+Health:    GET  http://localhost:8081/actuator/health
+Register:  POST http://localhost:8081/api/auth/register
+Login:     POST http://localhost:8081/api/auth/login
+Profile:   GET  http://localhost:8081/api/users/profile
+Search:    GET  http://localhost:8081/api/users/search?q=test
+
+========================================
+🔑 ENVIRONMENT VARIABLES (.env)
+========================================
+
+MONGODB_URI        - MongoDB Atlas connection
+JWT_SECRET         - JWT signing secret
+MAIL_USERNAME      - Gmail address
+MAIL_PASSWORD      - Gmail app password
+REDIS_HOST         - Redis host (localhost)
+REDIS_PORT         - Redis port (6379)
+KAFKA_BOOTSTRAP_SERVERS - Kafka servers (localhost:9092)
+
+========================================
+✅ PREREQUISITES
+========================================
+
+□ Java 17+
+□ Maven 3.8+
+□ Redis running (localhost:6379)
+□ Kafka running (localhost:9092)
+□ MongoDB Atlas account
+□ .env file configured
+
+========================================
+🐛 COMMON ISSUES
+========================================
+
+Build fails?        → fix-build.bat
+Can't connect DB?   → Check MONGODB_URI in .env
+Redis error?        → redis-server
+Kafka error?        → Check if Kafka is running
+Port in use?        → Change SERVER_PORT in .env
+
+========================================
+📊 VERIFICATION
+========================================
+
+□ Build succeeds
+□ Service starts on port 8081
+□ Health check returns UP
+□ Can register user
+□ Can login
+□ JWT tokens generated
+□ Protected endpoints work
+
+========================================
+🚀 STATUS: READY FOR TESTING
+========================================
