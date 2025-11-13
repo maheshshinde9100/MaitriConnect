@@ -1,113 +1,217 @@
-# MaitriConnect - Realtime Chat Application
+# 🚀 MaitriConnect - Realtime Chat Application
 
-A microservices-based realtime chat application built with Spring Boot, Java, MongoDB, and WebSocket.
+<div align="center">
 
-## Architecture
+![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?style=for-the-badge&logo=spring)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=for-the-badge&logo=mongodb)
+![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-blue?style=for-the-badge)
+![Microservices](https://img.shields.io/badge/Architecture-Microservices-purple?style=for-the-badge)
 
-- **Service Discovery** (Port 8761) - Eureka Server for service registration and discovery
-- **API Gateway** (Port 8080) - Routes requests to appropriate microservices
-- **Auth Service** (Port 8081) - Handles user authentication and JWT token management
-- **Chat Service** (Port 8082) - Manages chat messages and WebSocket connections
+*A modern, scalable microservices-based realtime chat application built with Spring Boot, Java, MongoDB, and WebSocket technology.*
 
-## Prerequisites
+</div>
 
-- Java 17+
-- Maven 3.6+
-- MongoDB Atlas account (connection string provided)
+---
 
-## Important Notes
+## 📋 Table of Contents
 
-- `@EnableEurekaClient` annotation is not needed in newer Spring Cloud versions - services auto-register when eureka-client dependency is present
-- Removed unused dependencies: Redis, Kafka from chat-service; Security from api-gateway
-- Services will automatically register with Eureka when they start
+- [🏗️ Architecture Overview](#️-architecture-overview)
+- [✨ Features](#-features)
+- [🛠️ Prerequisites](#️-prerequisites)
+- [🚀 Quick Start](#-quick-start)
+- [🌐 Service URLs](#-service-urls)
+- [📡 API Documentation](#-api-documentation)
+- [🔧 Configuration](#-configuration)
+- [🧪 Testing](#-testing)
+- [📁 Project Structure](#-project-structure)
+- [🤝 Contributing](#-contributing)
 
-## Quick Start
+---
 
-### 1. Start Service Discovery
-```bash
-cd service-discovery
-./mvnw spring-boot:run
+## 🏗️ Architecture Overview
+
+MaitriConnect follows a **microservices architecture** pattern with the following components:
+
+```mermaid
+graph TB
+    Client[🌐 Web Client<br/>Port 3000] 
+    Gateway[🚪 API Gateway<br/>Port 8080]
+    Discovery[🔍 Service Discovery<br/>Port 8761]
+    Auth[🔐 Auth Service<br/>Port 8081]
+    Chat[💬 Chat Service<br/>Port 8082]
+    DB[(🍃 MongoDB Atlas)]
+    
+    Client -->|REST APIs| Gateway
+    Client -->|WebSocket| Chat
+    Gateway --> Auth
+    Gateway --> Chat
+    Auth --> Discovery
+    Chat --> Discovery
+    Gateway --> Discovery
+    Auth --> DB
+    Chat --> DB
 ```
 
-### 2. Start Auth Service
-```bash
-cd auth-service
-./mvnw spring-boot:run
+### 🏢 Service Components
+
+| Service | Port | Description | Technology Stack |
+|---------|------|-------------|------------------|
+| **🔍 Service Discovery** | 8761 | Eureka Server for service registration | Spring Cloud Netflix Eureka |
+| **🚪 API Gateway** | 8080 | Routes requests & handles CORS | Spring Cloud Gateway |
+| **🔐 Auth Service** | 8081 | User authentication & JWT management | Spring Security + JWT |
+| **💬 Chat Service** | 8082 | Real-time messaging & WebSocket | Spring WebSocket + STOMP |
+
+---
+
+## ✨ Features
+
+### 🔐 **Authentication & Security**
+- ✅ User registration with validation
+- ✅ Secure login with JWT tokens
+- ✅ Password encryption with BCrypt
+- ✅ Session management
+
+### 💬 **Real-time Chat**
+- ✅ Instant messaging with WebSocket
+- ✅ Join/leave notifications
+- ✅ Message persistence
+- ✅ Chat room support
+
+### 🏗️ **Microservices Architecture**
+- ✅ Service discovery with Eureka
+- ✅ API Gateway for routing
+- ✅ Load balancing
+- ✅ Independent service scaling
+
+### 🌐 **Web Technologies**
+- ✅ Responsive web client
+- ✅ CORS support
+- ✅ SockJS fallback for WebSocket
+- ✅ Real-time UI updates
+
+---
+
+## 🛠️ Prerequisites
+
+Before running MaitriConnect, ensure you have:
+
+| Requirement | Version | Download Link |
+|-------------|---------|---------------|
+| ☕ **Java** | 17+ | [Download](https://adoptium.net/) |
+| 📦 **Maven** | 3.6+ | [Download](https://maven.apache.org/download.cgi) |
+| 🟢 **Node.js** | 14+ | [Download](https://nodejs.org/) |
+| 🍃 **MongoDB Atlas** | Account | [Sign Up](https://www.mongodb.com/cloud/atlas) |
+
+---
+
+### 🔐 **JWT Configuration**
+
+```properties
+jwt.secret=your-512-bit-secret-key-here
+jwt.expiration=86400000  # 24 hours
 ```
 
-### 3. Start Chat Service
-```bash
-cd chat-service
-./mvnw spring-boot:run
+### 🌐 **CORS Configuration**
+
+- **REST APIs**: Handled by API Gateway
+- **WebSocket**: Direct connection to Chat Service
+- **Origins**: Configured for `http://localhost:3000`
+
+---
+
+## 🧪 Testing
+
+### 🎯 **Manual Testing**
+
+1. **🔐 Test Authentication**
+   - Open http://localhost:3000
+   - Register a new user
+   - Login with credentials
+
+2. **💬 Test Real-time Chat**
+   - Open multiple browser tabs
+   - Login with different users
+   - Send messages between users
+
+3. **🔌 Test WebSocket Connection**
+   - Open `test-websocket.html`
+   - Click "Test WebSocket Connection"
+   - Verify connection status
+
+---
+
+## 📁 Project Structure
+
+```
+MaitriConnect/
+├── 🔍 service-discovery/          # Eureka Server
+│   ├── src/main/java/
+│   └── pom.xml
+├── 🚪 api-gateway/                # Spring Cloud Gateway
+│   ├── src/main/java/
+│   └── pom.xml
+├── 🔐 auth-service/               # Authentication Service
+│   ├── src/main/java/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── model/
+│   │   └── dto/
+│   └── pom.xml
+├── 💬 chat-service/               # Chat & WebSocket Service
+│   ├── src/main/java/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── model/
+│   │   └── config/
+│   └── pom.xml
+├── 🌐 chat-client.html            # Web Client
+├── 🟢 serve-client.js             # Node.js Server
+├── 🚀 start-services.bat          # Service Startup Script
+├── 🌐 start-client.bat            # Client Startup Script
+└── 📖 README.md                   # This file
 ```
 
-### 4. Start API Gateway
-```bash
-cd api-gateway
-./mvnw spring-boot:run
-```
+---
 
-### 5. Start Chat Client
-```bash
-# Option 1: Use Node.js server (recommended)
-node serve-client.js
+## 🎨 **Technology Stack**
 
-# Option 2: Use batch file
-start-client.bat
+### **Backend**
+- ☕ **Java 17** - Programming language
+- 🍃 **Spring Boot 3.5.6** - Application framework
+- 🔐 **Spring Security** - Authentication & authorization
+- 🌐 **Spring WebSocket** - Real-time communication
+- ☁️ **Spring Cloud** - Microservices framework
+- 🍃 **MongoDB Atlas** - Cloud database
+- 🔑 **JWT** - Token-based authentication
 
-# Option 3: Open directly (may have CORS issues)
-# Open chat-client.html in your web browser
-```
+### **Frontend**
+- 🌐 **HTML5/CSS3/JavaScript** - Web technologies
+- 🔌 **SockJS** - WebSocket library
+- 📡 **STOMP** - Messaging protocol
+- 🟢 **Node.js** - Development server
 
-## Service URLs
+### **DevOps & Tools**
+- 📦 **Maven** - Build automation
+- 🔍 **Eureka** - Service discovery
+- 🚪 **Spring Cloud Gateway** - API gateway
+- 🐳 **Microservices** - Architecture pattern
 
-- **Eureka Dashboard**: http://localhost:8761
-- **API Gateway**: http://localhost:8080
-- **Auth Service**: http://localhost:8081
-- **Chat Service**: http://localhost:8082
+---
 
-## API Endpoints
+## 👨‍💻 Author
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/user/{userId}` - Get user details
+**Mahesh Shinde**
+- 📧 Email: mahesh@example.com
+- 🐙 GitHub: [@maheshshinde](https://github.com/maheshshinde9100)
+- 💼 LinkedIn: [Mahesh Shinde](https://linkedin.com/in/maheshshinde9100)
 
-### Chat
-- `GET /api/chat/rooms/{roomId}/messages` - Get room messages
-- `POST /api/chat/rooms` - Create chat room
-- `GET /api/chat/users/{userId}/rooms` - Get user's chat rooms
+---
 
-### WebSocket
-- **Endpoint**: `/ws`
-- **Send Message**: `/app/chat.sendMessage`
-- **Join Chat**: `/app/chat.addUser`
-- **Subscribe**: `/topic/public`
+<div align="center">
 
-## Database Configuration
+### 🌟 **Star this repository if you found it helpful!** 🌟
 
-The application uses MongoDB Atlas with the provided connection string. Each service uses a separate database:
-- Auth Service: `authdb`
-- Chat Service: `chatdb`
+**Made by Mahesh using Spring Boot & Microservices**
 
-## Features
-
-- User registration and authentication with JWT
-- Real-time messaging using WebSocket
-- Service discovery with Eureka
-- API Gateway for routing
-- MongoDB for data persistence
-- Cross-origin resource sharing (CORS) enabled
-
-## Testing
-
-1. Open multiple browser tabs with `chat-client.html`
-2. Register/login with different users
-3. Send messages and see real-time updates across all connected clients
-
-## Development Notes
-
-- All services are configured to register with Eureka
-- JWT tokens are used for authentication
-- WebSocket connections handle real-time messaging
-- MongoDB Atlas is used for cloud database storage
+</div>
