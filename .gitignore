@@ -16,3 +16,5 @@ backend/COMPLETE_TESTING_GUIDE.txt
 backend/auth-service/BUILD_FIX_APPLIED.txt
 backend/auth-service/JWT_FIX_APPLIED.txt
 backend/auth-service/TROUBLESHOOTING.md
+backend/auth-service/setup-auth-service.bat
+backend/auth-service/test-auth-service.bat
