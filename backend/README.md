@@ -47,8 +47,17 @@ cd api-gateway
 ./mvnw spring-boot:run
 ```
 
-### 5. Open Chat Client
-Open `chat-client.html` in your web browser to test the application.
+### 5. Start Chat Client
+```bash
+# Option 1: Use Node.js server (recommended)
+node serve-client.js
+
+# Option 2: Use batch file
+start-client.bat
+
+# Option 3: Open directly (may have CORS issues)
+# Open chat-client.html in your web browser
+```
 
 ## Service URLs
 

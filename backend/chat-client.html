@@ -116,10 +116,17 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
+                mode: 'cors',
                 body: JSON.stringify({ username, password })
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.token) {
                         token = data.token;
@@ -133,7 +140,8 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">Login error!</span>';
+                    const errorMessage = error.error || error.message || 'Login error!';
+                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">' + errorMessage + '</span>';
                 });
         }
 
@@ -148,10 +156,17 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
+                mode: 'cors',
                 body: JSON.stringify({ username, email, password, firstName, lastName })
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.token) {
                         token = data.token;
@@ -165,7 +180,8 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">Registration error!</span>';
+                    const errorMessage = error.error || error.message || 'Registration error!';
+                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">' + errorMessage + '</span>';
                 });
         }
 
@@ -175,7 +191,7 @@
         }
 
         function connect() {
-            const socket = new SockJS('http://localhost:8080/ws');
+            const socket = new SockJS('http://localhost:8082/ws');
             stompClient = Stomp.over(socket);
 
             stompClient.connect({}, function (frame) {

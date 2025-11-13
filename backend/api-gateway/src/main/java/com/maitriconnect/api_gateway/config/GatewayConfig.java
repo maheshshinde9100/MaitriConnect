@@ -12,13 +12,14 @@ public class GatewayConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.setAllowCredentials(true);
-        corsConfig.addAllowedOriginPattern("*");
+        corsConfig.setAllowCredentials(false);
+        corsConfig.addAllowedOrigin("*");
         corsConfig.addAllowedHeader("*");
         corsConfig.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfig);
+        // Apply CORS only to API routes, not WebSocket routes
+        source.registerCorsConfiguration("/api/**", corsConfig);
 
         return new CorsWebFilter(source);
     }

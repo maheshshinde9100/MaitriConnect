@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Disconnected</div>
+    <button onclick="testConnection()">Test WebSocket Connection</button>
+    <div id="messages"></div>
+
+    <script>
+        let stompClient = null;
+
+        function testConnection() {
+            console.log('Testing WebSocket connection...');
+            document.getElementById('status').textContent = 'Connecting...';
+            
+            const socket = new SockJS('http://localhost:8082/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                document.getElementById('status').textContent = 'Connected!';
+                document.getElementById('status').style.color = 'green';
+                
+                stompClient.subscribe('/topic/public', function(message) {
+                    console.log('Received message:', message.body);
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.innerHTML += '<div>Received: ' + message.body + '</div>';
+                });
+
+                // Send a test message
+                stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+                    senderId: 'testuser',
+                    type: 'JOIN'
+                }));
+                
+            }, function(error) {
+                console.error('Connection error:', error);
+                document.getElementById('status').textContent = 'Connection failed: ' + error;
+                document.getElementById('status').style.color = 'red';
+            });
+        }
+    </script>
+</body>
+</html>
