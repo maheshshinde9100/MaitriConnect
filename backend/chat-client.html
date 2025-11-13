@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MaitriConnect Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.2/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .auth-section,
+        .chat-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #messageArea {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .message.own {
+            text-align: right;
+            color: blue;
+        }
+
+        .message.other {
+            text-align: left;
+            color: green;
+        }
+
+        input,
+        button {
+            margin: 5px;
+            padding: 8px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>MaitriConnect Chat Application</h1>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <h3>Login / Register</h3>
+            <div>
+                <input type="text" id="username" placeholder="Username" />
+                <input type="email" id="email" placeholder="Email (for registration)" />
+                <input type="password" id="password" placeholder="Password" />
+                <input type="text" id="firstName" placeholder="First Name (for registration)" />
+                <input type="text" id="lastName" placeholder="Last Name (for registration)" />
+            </div>
+            <div>
+                <button onclick="login()">Login</button>
+                <button onclick="register()">Register</button>
+            </div>
+            <div id="authMessage"></div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatSection" class="chat-section hidden">
+            <h3>Chat Room</h3>
+            <div id="messageArea"></div>
+            <div>
+                <input type="text" id="messageInput" placeholder="Type your message..."
+                    onkeypress="handleKeyPress(event)" />
+                <button onclick="sendMessage()">Send</button>
+                <button onclick="disconnect()">Disconnect</button>
+            </div>
+            <div id="connectionStatus">Disconnected</div>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let currentUser = null;
+        let token = null;
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.token) {
+                        token = data.token;
+                        currentUser = data.username;
+                        document.getElementById('authMessage').innerHTML = '<span style="color: green;">Login successful!</span>';
+                        showChatSection();
+                        connect();
+                    } else {
+                        document.getElementById('authMessage').innerHTML = '<span style="color: red;">Login failed!</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">Login error!</span>';
+                });
+        }
+
+        function register() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+
+            fetch('http://localhost:8080/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, email, password, firstName, lastName })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.token) {
+                        token = data.token;
+                        currentUser = data.username;
+                        document.getElementById('authMessage').innerHTML = '<span style="color: green;">Registration successful!</span>';
+                        showChatSection();
+                        connect();
+                    } else {
+                        document.getElementById('authMessage').innerHTML = '<span style="color: red;">Registration failed!</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('authMessage').innerHTML = '<span style="color: red;">Registration error!</span>';
+                });
+        }
+
+        function showChatSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('chatSection').classList.remove('hidden');
+        }
+
+        function connect() {
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                document.getElementById('connectionStatus').textContent = 'Connected';
+
+                stompClient.subscribe('/topic/public', function (message) {
+                    showMessage(JSON.parse(message.body));
+                });
+
+                // Send join message
+                stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+                    senderId: currentUser,
+                    type: 'JOIN'
+                }));
+            });
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const messageContent = messageInput.value.trim();
+
+            if (messageContent && stompClient) {
+                const chatMessage = {
+                    senderId: currentUser,
+                    content: messageContent,
+                    type: 'CHAT',
+                    chatRoomId: 'public'
+                };
+
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+                messageInput.value = '';
+            }
+        }
+
+        function showMessage(message) {
+            const messageArea = document.getElementById('messageArea');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+
+            if (message.type === 'JOIN') {
+                messageElement.innerHTML = '<i>' + message.senderId + ' joined the chat</i>';
+            } else if (message.type === 'LEAVE') {
+                messageElement.innerHTML = '<i>' + message.senderId + ' left the chat</i>';
+            } else {
+                if (message.senderId === currentUser) {
+                    messageElement.classList.add('own');
+                } else {
+                    messageElement.classList.add('other');
+                }
+                messageElement.innerHTML = '<strong>' + message.senderId + ':</strong> ' + message.content;
+            }
+
+            messageArea.appendChild(messageElement);
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+            }
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('chatSection').classList.add('hidden');
+            currentUser = null;
+            token = null;
+        }
+    </script>
+</body>
+
+</html>
