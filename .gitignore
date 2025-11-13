@@ -18,3 +18,8 @@ backend/auth-service/JWT_FIX_APPLIED.txt
 backend/auth-service/TROUBLESHOOTING.md
 backend/auth-service/setup-auth-service.bat
 backend/auth-service/test-auth-service.bat
+backend/service-discovery/src/main/resources/application.properties
+backend/notification-service/src/main/resources/application.properties
+backend/call-service/src/main/resources/application.properties
+backend/auth-service/src/main/resources/application.properties
+backend/api-gateway/src/main/resources/application.properties
