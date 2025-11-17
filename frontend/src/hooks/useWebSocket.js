@@ -1,73 +1,73 @@
-import { useState, useEffect, useCallback } from 'react';
-import websocketService from '../services/websocketService';
+import { useCallback, useEffect, useRef, useState } from 'react'
+import websocketService from '../services/websocketService'
 
-export const useWebSocket = () => {
-  const [messages, setMessages] = useState([]);
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState(null);
+const DEFAULT_DESTINATION = '/app/chat.sendMessage'
+const ROOM_TOPIC_PREFIX = '/topic/chatroom/'
 
-  const onMessageReceived = useCallback((message) => {
-    setMessages(prev => [...prev, {
-      ...message,
-      timestamp: message.timestamp || new Date().toISOString(),
-      id: message.id || Date.now() + Math.random()
-    }]);
-  }, []);
-
-  const onConnected = useCallback(() => {
-    setConnected(true);
-    setError(null);
-  }, []);
-
-  const onError = useCallback((error) => {
-    setConnected(false);
-    setError(error);
-  }, []);
+export const useWebSocket = (isEnabled = true) => {
+  const [connected, setConnected] = useState(false)
+  const [error, setError] = useState(null)
+  const handlersRef = useRef(new Map())
 
   const connect = useCallback(() => {
-    websocketService.connect(onMessageReceived, onConnected, onError);
-  }, [onMessageReceived, onConnected, onError]);
+    if (!isEnabled) return
 
-  const sendMessage = useCallback((content, roomId = 'public') => {
-    const username = localStorage.getItem('username');
-    const message = {
-      senderId: username,
-      content: content,
-      type: 'CHAT',
-      chatRoomId: roomId,
-      timestamp: new Date().toISOString()
-    };
-    websocketService.sendMessage(message);
-  }, []);
+    websocketService.connect(
+      () => {
+        setConnected(true)
+        setError(null)
+      },
+      (frame) => {
+        setConnected(false)
+        setError(frame)
+      },
+    )
+  }, [isEnabled])
 
-  const addUser = useCallback(() => {
-    const username = localStorage.getItem('username');
-    websocketService.addUser(username);
-  }, []);
+  const subscribeToRoom = useCallback((roomId, handler) => {
+    if (!roomId || !connected) return
+    const topic = `${ROOM_TOPIC_PREFIX}${roomId}`
+    handlersRef.current.set(topic, handler)
+    websocketService.subscribe(topic, handler)
+  }, [connected])
+
+  const unsubscribeFromRoom = useCallback((roomId) => {
+    if (!roomId) return
+    const topic = `${ROOM_TOPIC_PREFIX}${roomId}`
+    handlersRef.current.delete(topic)
+    websocketService.unsubscribe(topic)
+  }, [])
+
+  const sendRoomMessage = useCallback((payload) => {
+    websocketService.sendMessage(DEFAULT_DESTINATION, payload)
+  }, [])
 
   const disconnect = useCallback(() => {
-    websocketService.disconnect();
-    setConnected(false);
-  }, []);
-
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
+    websocketService.disconnect()
+    setConnected(false)
+  }, [])
 
   useEffect(() => {
+    if (!isEnabled) return
+    connect()
     return () => {
-      disconnect();
-    };
-  }, [disconnect]);
+      disconnect()
+    }
+  }, [connect, disconnect, isEnabled])
+
+  useEffect(() => {
+    if (!connected) return
+    handlersRef.current.forEach((handler, topic) => {
+      websocketService.subscribe(topic, handler)
+    })
+  }, [connected])
 
   return {
-    messages,
     connected,
     error,
-    connect,
-    sendMessage,
-    addUser,
-    disconnect,
-    clearMessages
-  };
-};
+    subscribeToRoom,
+    unsubscribeFromRoom,
+    sendRoomMessage,
+  }
+}
+

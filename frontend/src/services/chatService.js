@@ -1,28 +1,19 @@
-import api from '../config/api';
+import api from '../config/api'
 
-export const getRoomMessages = async (roomId) => {
-  try {
-    const response = await api.get(`/api/chat/rooms/${roomId}/messages`);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Failed to fetch messages');
-  }
-};
-
-export const createChatRoom = async (roomData) => {
-  try {
-    const response = await api.post('/api/chat/rooms', roomData);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Failed to create room');
-  }
-};
+const CHAT_BASE = '/api/chat'
 
 export const getUserRooms = async (userId) => {
-  try {
-    const response = await api.get(`/api/chat/users/${userId}/rooms`);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Failed to fetch rooms');
-  }
-};
+  const response = await api.get(`${CHAT_BASE}/users/${userId}/rooms`)
+  return response.data
+}
+
+export const getRoomMessages = async (roomId) => {
+  const response = await api.get(`${CHAT_BASE}/rooms/${roomId}/messages`)
+  return response.data
+}
+
+export const createChatRoom = async (payload) => {
+  const response = await api.post(`${CHAT_BASE}/rooms`, payload)
+  return response.data
+}
+

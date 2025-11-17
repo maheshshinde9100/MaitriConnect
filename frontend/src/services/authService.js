@@ -1,46 +1,19 @@
-import api from '../config/api';
+import api from '../config/api'
 
-export const registerUser = async (userData) => {
-  try {
-    const response = await api.post('/api/auth/register', userData);
-    
-    // Store token in localStorage
-    localStorage.setItem('authToken', response.data.token);
-    localStorage.setItem('userId', response.data.userId);
-    localStorage.setItem('username', response.data.username);
-    
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Registration failed');
-  }
-};
+const AUTH_BASE = '/api/auth'
 
-export const loginUser = async (credentials) => {
-  try {
-    const response = await api.post('/api/auth/login', credentials);
-    
-    // Store authentication data
-    localStorage.setItem('authToken', response.data.token);
-    localStorage.setItem('userId', response.data.userId);
-    localStorage.setItem('username', response.data.username);
-    
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Login failed');
-  }
-};
+export const registerUser = async (payload) => {
+  const response = await api.post(`${AUTH_BASE}/register`, payload)
+  return response.data
+}
+
+export const loginUser = async (payload) => {
+  const response = await api.post(`${AUTH_BASE}/login`, payload)
+  return response.data
+}
 
 export const getUserDetails = async (userId) => {
-  try {
-    const response = await api.get(`/api/auth/user/${userId}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Failed to fetch user details');
-  }
-};
+  const response = await api.get(`${AUTH_BASE}/user/${userId}`)
+  return response.data
+}
 
-export const logoutUser = () => {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('userId');
-  localStorage.removeItem('username');
-};
