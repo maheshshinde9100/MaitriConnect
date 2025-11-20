@@ -25,3 +25,4 @@ backend/auth-service/src/main/resources/application.properties
 backend/api-gateway/src/main/resources/application.properties
 backend/API_DOCUMENTATION.md
 .vscode/settings.json
+frontend/.env
