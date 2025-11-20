@@ -20,18 +20,21 @@ public class ChatController {
 
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage) {
+        System.out.println("Received message via WebSocket: " + chatMessage.getContent());
+        
+        // Save message to database
         ChatMessage savedMessage = chatService.saveMessage(chatMessage);
         
-        // Send to specific room
-        messagingTemplate.convertAndSend("/topic/room." + chatMessage.getChatRoomId(), savedMessage);
+        // Broadcast to all users in the room
+        String destination = "/topic/room." + chatMessage.getChatRoomId();
+        System.out.println("Broadcasting to: " + destination);
+        messagingTemplate.convertAndSend(destination, savedMessage);
         
-        // Also send to user-specific queue for notifications
-        if (chatMessage.getReceiverId() != null) {
-            messagingTemplate.convertAndSendToUser(
-                chatMessage.getReceiverId(), 
-                "/queue/messages", 
-                savedMessage
-            );
+        // Also send to specific user if it's a direct message
+        if (chatMessage.getReceiverId() != null && !chatMessage.getReceiverId().isEmpty()) {
+            String userDestination = "/queue/messages/" + chatMessage.getReceiverId();
+            System.out.println("Sending to user queue: " + userDestination);
+            messagingTemplate.convertAndSendToUser(chatMessage.getReceiverId(), "/queue/messages", savedMessage);
         }
     }
 
@@ -40,7 +43,8 @@ public class ChatController {
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSenderId());
         
         chatMessage.setType(ChatMessage.MessageType.JOIN);
-        messagingTemplate.convertAndSend("/topic/room." + chatMessage.getChatRoomId(), chatMessage);
+        String destination = "/topic/room." + chatMessage.getChatRoomId();
+        messagingTemplate.convertAndSend(destination, chatMessage);
     }
 
     @MessageMapping("/chat.typing")

@@ -20,9 +20,9 @@ public class ChatRestController {
     private ChatService chatService;
 
     // Health check endpoint
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("Chat Service is UP");
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Chat REST API is working!");
     }
 
     @GetMapping("/rooms/{roomId}/messages")
@@ -90,11 +90,5 @@ public class ChatRestController {
         );
         ChatMessage savedMessage = chatService.saveMessage(message);
         return ResponseEntity.ok(savedMessage);
-    }
-
-    // Test endpoint to verify service is working
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Chat REST API is working!");
     }
 }
