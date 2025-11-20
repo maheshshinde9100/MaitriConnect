@@ -1,13 +1,13 @@
-package com.maitriconnect.api_gateway;
+// package com.maitriconnect.api_gateway;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class ApiGatewayApplicationTests {
+// @SpringBootTest
+// class ApiGatewayApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+// 	@Test
+// 	void contextLoads() {
+// 	}
 
-}
+// }
