@@ -3,6 +3,7 @@ package com.maitriconnect.chat_service.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Document(collection = "chat_rooms")
@@ -10,18 +11,27 @@ public class ChatRoom {
     @Id
     private String id;
     private String name;
-    private Set<String> participants;
+    private Set<String> participants = new HashSet<>();
     private LocalDateTime createdAt;
     private String createdBy;
+    private ChatRoomType type;
+    private String lastMessage;
+    private LocalDateTime lastMessageTime;
+
+    public enum ChatRoomType {
+        DIRECT, GROUP
+    }
 
     public ChatRoom() {
         this.createdAt = LocalDateTime.now();
+        this.type = ChatRoomType.DIRECT;
     }
 
-    public ChatRoom(String name, Set<String> participants, String createdBy) {
+    public ChatRoom(String name, Set<String> participants, String createdBy, ChatRoomType type) {
         this.name = name;
         this.participants = participants;
         this.createdBy = createdBy;
+        this.type = type;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -40,4 +50,13 @@ public class ChatRoom {
 
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public ChatRoomType getType() { return type; }
+    public void setType(ChatRoomType type) { this.type = type; }
+
+    public String getLastMessage() { return lastMessage; }
+    public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
+
+    public LocalDateTime getLastMessageTime() { return lastMessageTime; }
+    public void setLastMessageTime(LocalDateTime lastMessageTime) { this.lastMessageTime = lastMessageTime; }
 }

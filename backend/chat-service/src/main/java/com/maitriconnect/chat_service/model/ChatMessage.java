@@ -14,9 +14,14 @@ public class ChatMessage {
     private String chatRoomId;
     private LocalDateTime timestamp;
     private MessageType type;
+    private MessageStatus status = MessageStatus.SENT;
 
     public enum MessageType {
-        CHAT, JOIN, LEAVE
+        CHAT, JOIN, LEAVE, TYPING, STOP_TYPING, SEEN
+    }
+
+    public enum MessageStatus {
+        SENT, DELIVERED, SEEN
     }
 
     // Constructors
@@ -54,4 +59,7 @@ public class ChatMessage {
 
     public MessageType getType() { return type; }
     public void setType(MessageType type) { this.type = type; }
+
+    public MessageStatus getStatus() { return status; }
+    public void setStatus(MessageStatus status) { this.status = status; }
 }
