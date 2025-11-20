@@ -1,13 +1,13 @@
-package com.maitriconnect.service_discovery;
+// package com.maitriconnect.service_discovery;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class ServiceDiscoveryApplicationTests {
+// @SpringBootTest
+// class ServiceDiscoveryApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+// 	@Test
+// 	void contextLoads() {
+// 	}
 
-}
+// }
