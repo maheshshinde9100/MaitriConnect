@@ -1,12 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { AuthProvider } from './context/AuthContext.jsx'
-import { Toaster } from 'react-hot-toast'
+import { StrictMode } from 'react'
 
 createRoot(document.getElementById('root')).render(
-  <AuthProvider>
+  <StrictMode>
     <App />
-    <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
-  </AuthProvider>,
+  </StrictMode>,
 )

@@ -1,58 +1,37 @@
-import { useState } from 'react'
-import { Laugh, Mic, Paperclip, Send, Smile } from 'lucide-react'
+import { useState, useRef } from "react";
+import { Send } from "lucide-react";
 
-const MessageInput = ({ onSend, disabled }) => {
-  const [value, setValue] = useState('')
-
-  const handleSend = () => {
-    if (!value.trim() || disabled) return
-    onSend?.(value.trim())
-    setValue('')
-  }
-
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      handleSend()
-    }
-  }
-
+export default function MessageInput({ onSend }) {
+  const [input, setInput] = useState("");
+  const textareaRef = useRef();
+  const handleInput = (e) => {
+    setInput(e.target.value);
+    textareaRef.current.style.height = "auto";
+    textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+  };
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (input.trim() === "") return;
+    onSend(input);
+    setInput("");
+    textareaRef.current.style.height = "auto";
+  };
   return (
-    <div className="border-t border-slate-200 bg-white/90 px-6 py-4">
-      <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2">
-        <button className="text-slate-400 hover:text-slate-900">
-          <Smile size={20} />
-        </button>
-        <button className="text-slate-400 hover:text-slate-900">
-          <Paperclip size={20} />
-        </button>
-        <textarea
-          rows={1}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          className="flex-1 resize-none border-none bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-60"
-          placeholder="Message"
-        />
-        <div className="flex items-center gap-2 text-slate-400">
-          <button className="hover:text-slate-900">
-            <Laugh size={20} />
-          </button>
-          <button className="hover:text-slate-900">
-            <Mic size={20} />
-          </button>
-        </div>
-        <button
-          onClick={handleSend}
-          disabled={disabled || !value.trim()}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Send size={18} />
-        </button>
-      </div>
-    </div>
-  )
+    <form className="flex items-center gap-3 px-6 py-4 bg-slate-900/70 border-t border-white/15" onSubmit={handleSend}>
+      <textarea
+        ref={textareaRef}
+        className="flex-1 resize-none bg-slate-800/70 rounded-2xl px-4 py-2 text-white placeholder:text-white/50 min-h-[40px] max-h-[150px] focus:outline-none border border-white/10"
+        placeholder="Type a message..."
+        value={input}
+        onChange={handleInput}
+        rows={1}
+        onKeyDown={e => {
+          if (e.key === "Enter" && !e.shiftKey) handleSend(e);
+        }}
+      />
+      <button type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white p-3 rounded-full transition">
+        <Send className="w-5 h-5" />
+      </button>
+    </form>
+  );
 }
-
-export default MessageInput
