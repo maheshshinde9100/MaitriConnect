@@ -1,11 +1,53 @@
+import { motion } from 'framer-motion';
+
 export default function LoadingIndicator() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 to-indigo-900 text-white">
-      <svg className="animate-spin h-8 w-8 text-indigo-500 mr-2" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-      </svg>
-      <span className="text-lg">Loading…</span>
+    <div
+      className="flex items-center justify-center min-h-screen"
+      style={{ background: 'var(--bg-primary)' }}
+    >
+      <div className="text-center">
+        {/* Animated Logo */}
+        <motion.div
+          className="w-20 h-20 mx-auto mb-6 rounded-2xl gradient-primary flex items-center justify-center"
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, -5, 0],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <span className="text-3xl font-bold text-white">M</span>
+        </motion.div>
+
+        {/* Loading Text */}
+        <h2 className="text-xl font-semibold mb-3 gradient-text">
+          MaitriConnect
+        </h2>
+
+        {/* Loading Dots */}
+        <div className="flex items-center justify-center gap-2">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 rounded-full"
+              style={{ background: 'var(--accent-primary)' }}
+              animate={{
+                y: [0, -10, 0],
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 1,
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

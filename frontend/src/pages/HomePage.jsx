@@ -1,4 +1,3 @@
-// src/pages/HomePage.jsx
 import { useAuthContext } from "../hooks/useAuthContext";
 import { useChatLogic } from "../hooks/useChatLogic";
 import Sidebar from "../components/Sidebar";
@@ -8,6 +7,7 @@ import MessageInput from "../components/MessageInput";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { MessageSquare } from "lucide-react";
 
 const HomePage = () => {
   const { user, isAuthenticated, logout, initializing } = useAuthContext();
@@ -22,6 +22,11 @@ const HomePage = () => {
     messages,
     sendMessage,
     typingUser,
+    sendTypingIndicator,
+    handleReaction,
+    fileAttachments,
+    selectedFile,
+    setSelectedFile,
   } = useChatLogic({ user, token: user?.token });
 
   const navigate = useNavigate();
@@ -37,8 +42,8 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-indigo-900 text-white flex flex-col md:flex-row">
-      {/* Sidebar (top on mobile, left on desktop) */}
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+      {/* Sidebar */}
       <Sidebar
         user={user}
         users={filteredUsers}
@@ -50,36 +55,53 @@ const HomePage = () => {
         currentChatUser={currentChatUser}
       />
 
-      {/* Chat area */}
-      <main className="flex-1 flex flex-col">
-        <ChatHeader chatUser={currentChatUser} />
+      {/* Main Chat Area */}
+      <main className="flex-1 flex flex-col relative">
+        {currentChatUser ? (
+          <>
+            {/* Chat Header */}
+            <ChatHeader chatUser={currentChatUser} />
 
-        <section className="flex-1 flex flex-col md:p-4 lg:p-6">
-          <div className="flex-1 bg-white/5 md:bg-white/10 rounded-none md:rounded-3xl shadow-none md:shadow-2xl backdrop-blur-sm overflow-hidden border-t md:border border-white/10">
-            {currentChatUser ? (
+            {/* Messages Container */}
+            <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--bg-secondary)' }}>
               <MessageList
                 messages={messages}
                 currentUser={user}
                 typingUser={typingUser}
+                onReact={handleReaction}
+                fileAttachments={fileAttachments}
               />
-            ) : (
-              <div className="flex flex-col justify-center items-center h-full opacity-80 select-none px-4 text-center">
-                <h2 className="text-2xl md:text-3xl font-semibold mb-2">
-                  Welcome to MaitriConnect 🎉
-                </h2>
-                <p className="mt-1 text-white/70 text-sm md:text-base max-w-md">
-                  Select a user from the sidebar to start a private conversation.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {currentChatUser && (
-            <div className="border-t border-white/10 bg-slate-900/80 md:bg-transparent md:border-none mt-0 md:mt-3">
-              <MessageInput onSend={sendMessage} />
             </div>
-          )}
-        </section>
+
+            {/* Message Input */}
+            <div style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+              <MessageInput
+                onSend={sendMessage}
+                onFileSelect={setSelectedFile}
+                selectedFile={selectedFile}
+                onClearFile={() => setSelectedFile(null)}
+              />
+            </div>
+          </>
+        ) : (
+          /* Empty State */
+          <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="text-center px-8 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 gradient-primary">
+                <MessageSquare className="w-12 h-12 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold mb-3 gradient-text">
+                Welcome to MaitriConnect
+              </h2>
+              <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Your conversations, elevated
+              </p>
+              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                Select a contact from the sidebar to start chatting
+              </p>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

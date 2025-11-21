@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import { fileService } from "../services/fileService";
 
 const API_BASE = "http://localhost:8080";
-const WS_URL = "ws://localhost:8080/ws";
 
 export function useChatLogic({ user, token }) {
   const [allUsers, setAllUsers] = useState([]);
@@ -12,9 +14,13 @@ export function useChatLogic({ user, token }) {
   const [currentChatUser, setCurrentChatUser] = useState(null);
   const [currentRoomId, setCurrentRoomId] = useState(null);
   const [typingUser, setTypingUser] = useState(null);
+  const [fileAttachments, setFileAttachments] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const socketRef = useRef(null);
+  const stompClientRef = useRef(null);
   const [connecting, setConnecting] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  const roomSubscriptionRef = useRef(null);
 
   // ---- Load all users once authenticated ----
   useEffect(() => {
@@ -32,80 +38,120 @@ export function useChatLogic({ user, token }) {
       .catch(() => setLoadingUsers(false));
   }, [token]);
 
-  // ---- WebSocket connection (single, long‑lived) ----
+  // ---- STOMP WebSocket connection ----
   useEffect(() => {
     if (!token || !user) return;
 
     setConnecting(true);
-    const ws = new WebSocket(WS_URL);
-    socketRef.current = ws;
 
-    ws.onopen = () => {
-      setConnecting(false);
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${API_BASE}/ws`),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      onConnect: () => {
+        console.log('✅ STOMP Connected');
+        setConnecting(false);
+      },
+      onDisconnect: () => {
+        console.log('❌ STOMP Disconnected');
+        setConnecting(false);
+      },
+      onStompError: (frame) => {
+        console.error('STOMP error:', frame);
+        setConnecting(false);
+      },
+    });
 
-      // Optional: send a SUBSCRIBE message for this userId if your backend expects it
-      try {
-        ws.send(
-          JSON.stringify({
-            type: "SUBSCRIBE",
-            userId: user.userId,
-          })
-        );
-      } catch {
-        // ignore
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      if (roomSubscriptionRef.current) {
+        roomSubscriptionRef.current.unsubscribe();
       }
+      client.deactivate();
     };
+  }, [token, user]);
 
-    ws.onclose = () => {
-      setConnecting(false);
-    };
+  // ---- Subscribe to current room when it changes ----
+  useEffect(() => {
+    if (!stompClientRef.current || !currentRoomId || !stompClientRef.current.connected) {
+      return;
+    }
 
-    ws.onerror = () => {
-      setConnecting(false);
-    };
+    // Unsubscribe from previous room
+    if (roomSubscriptionRef.current) {
+      roomSubscriptionRef.current.unsubscribe();
+    }
 
-    // IMPORTANT: this handler does NOT depend on currentRoomId,
-    // it runs for the lifetime of the socket
-    ws.onmessage = (event) => {
-      let msg;
-      try {
-        msg = JSON.parse(event.data);
-      } catch {
-        return;
-      }
+    // Subscribe to new room
+    const subscription = stompClientRef.current.subscribe(
+      `/topic/room.${currentRoomId}`,
+      (message) => {
+        const msg = JSON.parse(message.body);
+        console.log('📨 Received message:', msg);
 
-      // typing indicators
-      if (msg.type === "TYPING") {
-        setTypingUser(msg.senderId);
-        return;
-      }
-      if (msg.type === "STOP_TYPING") {
-        setTypingUser(null);
-        return;
-      }
+        // Handle typing indicators
+        if (msg.type === "TYPING") {
+          setTypingUser(msg.senderId);
+          return;
+        }
+        if (msg.type === "STOP_TYPING") {
+          setTypingUser(null);
+          return;
+        }
 
-      // Only append messages that are relevant:
-      // 1) belong to the currently open room, OR
-      // 2) direct to this user (so if sender initiates a new room, you still see it)
-      const isForCurrentRoom =
-        msg.chatRoomId && currentRoomId && msg.chatRoomId === currentRoomId;
+        // Handle reactions
+        if (msg.type === "REACTION") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === msg.messageId
+                ? { ...m, reactions: msg.reactions || {} }
+                : m
+            )
+          );
+          return;
+        }
 
-      const isDirectToMe =
-        msg.receiverId &&
-        String(msg.receiverId) === String(user.userId) &&
-        (!currentRoomId || msg.chatRoomId === currentRoomId);
+        // Handle delivered/read receipts
+        if (msg.type === "DELIVERED" || msg.type === "READ") {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if (m.chatRoomId === msg.chatRoomId && m.senderId === user.userId) {
+                return {
+                  ...m,
+                  status: msg.type,
+                  deliveredAt: msg.type === "DELIVERED" ? new Date().toISOString() : m.deliveredAt,
+                  readAt: msg.type === "READ" ? new Date().toISOString() : m.readAt,
+                };
+              }
+              return m;
+            })
+          );
+          return;
+        }
 
-      if (msg.type === "CHAT" || msg.type === "JOIN" || msg.type === "LEAVE") {
-        if (isForCurrentRoom || isDirectToMe) {
+        // Handle chat messages
+        if (msg.type === "CHAT" || msg.type === "FILE") {
+          setMessages((prev) => [...prev, msg]);
+        }
+
+        // Handle join/leave messages
+        if (msg.type === "JOIN" || msg.type === "LEAVE") {
           setMessages((prev) => [...prev, msg]);
         }
       }
-    };
+    );
+
+    roomSubscriptionRef.current = subscription;
 
     return () => {
-      ws.close();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
-  }, [token, user, currentRoomId]); // currentRoomId is here only so `isForCurrentRoom` can be checked with latest value
+  }, [currentRoomId, user]);
 
   // ---- Selecting a user / opening a chat ----
   const startChat = async (chatUser) => {
@@ -127,65 +173,141 @@ export function useChatLogic({ user, token }) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setMessages(msgsRes.data);
-
-    // 3. Announce JOIN to the room over WebSocket (optional)
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(
-        JSON.stringify({
-          senderId: user.userId,
-          senderUsername: user.username,
-          content: "",
-          chatRoomId: room.id,
-          type: "JOIN",
-          timestamp: new Date().toISOString(),
-        })
-      );
-    }
   };
 
   // ---- Sending a message ----
   const sendMessage = async (content) => {
-    if (!content.trim() || !currentRoomId || !user || !currentChatUser) return;
+    if (!content.trim() && !selectedFile) return;
+    if (!currentRoomId || !user || !currentChatUser) return;
+
+    let fileId = null;
+
+    // Upload file if selected
+    if (selectedFile) {
+      try {
+        const fileResponse = await fileService.uploadFile(
+          selectedFile,
+          user.userId,
+          currentRoomId,
+          (progress) => console.log(`Upload progress: ${progress}%`)
+        );
+        fileId = fileResponse.fileId;
+
+        // Store file metadata
+        setFileAttachments((prev) => ({
+          ...prev,
+          [fileId]: fileResponse,
+        }));
+      } catch (error) {
+        console.error("File upload failed:", error);
+        alert("Failed to upload file");
+        return;
+      }
+    }
 
     const msg = {
       senderId: user.userId,
       senderUsername: user.username,
       receiverId: currentChatUser.id,
-      content,
+      content: content.trim(),
       chatRoomId: currentRoomId,
-      type: "CHAT",
+      type: fileId ? "FILE" : "CHAT",
       timestamp: new Date().toISOString(),
+      fileAttachments: fileId ? [fileId] : [],
+      status: "SENT",
     };
 
     // Immediately show on sender UI
     setMessages((prev) => [...prev, msg]);
 
-    // Send via WS so receiver sees it instantly
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+    // Clear selected file
+    setSelectedFile(null);
+
+    // Send via STOMP so receiver sees it instantly
+    if (stompClientRef.current && stompClientRef.current.connected) {
       try {
-        socketRef.current.send(JSON.stringify(msg));
-      } catch {
-        // ignore
+        stompClientRef.current.publish({
+          destination: '/app/chat.sendMessage',
+          body: JSON.stringify(msg),
+        });
+      } catch (error) {
+        console.error('Failed to send message via STOMP:', error);
       }
     }
 
-    // Persist via REST – no need to push to state again
+    // Also persist via REST API to database
     try {
       await axios.post(
         `${API_BASE}/api/chat/messages`,
         {
           senderId: user.userId,
           receiverId: currentChatUser.id,
-          content,
+          content: content.trim(),
           chatRoomId: currentRoomId,
-          type: "CHAT",
+          type: fileId ? "FILE" : "CHAT",
+          fileAttachments: fileId ? [fileId] : [],
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-    } catch {
-      // optional: show toast
+    } catch (error) {
+      console.error('Failed to save message to database:', error);
+    }
+  };
+
+  // ---- Typing indicators with debouncing ----
+  const sendTypingIndicator = () => {
+    if (!currentRoomId || !user) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Send typing event
+    if (stompClientRef.current && stompClientRef.current.connected) {
+      stompClientRef.current.publish({
+        destination: '/app/chat.typing',
+        body: JSON.stringify({
+          senderId: user.userId,
+          chatRoomId: currentRoomId,
+          type: "TYPING",
+        }),
+      });
+    }
+
+    // Set timeout to send stop typing after 3 seconds
+    typingTimeoutRef.current = setTimeout(() => {
+      if (stompClientRef.current && stompClientRef.current.connected) {
+        stompClientRef.current.publish({
+          destination: '/app/chat.stopTyping',
+          body: JSON.stringify({
+            senderId: user.userId,
+            chatRoomId: currentRoomId,
+            type: "STOP_TYPING",
+          }),
+        });
+      }
+    }, 3000);
+  };
+
+  // ---- Reactions ----
+  const handleReaction = (messageId, emoji) => {
+    if (!user || !stompClientRef.current) return;
+
+    if (stompClientRef.current.connected) {
+      stompClientRef.current.publish({
+        destination: '/app/chat.reaction',
+        body: JSON.stringify({
+          type: "REACTION",
+          messageId,
+          userId: user.userId,
+          username: user.username,
+          emoji,
+          action: "toggle",
+        }),
+      });
     }
   };
 
@@ -215,9 +337,14 @@ export function useChatLogic({ user, token }) {
     currentRoomId,
     user,
     typingUser,
+    sendTypingIndicator,
+    handleReaction,
+    fileAttachments,
+    selectedFile,
+    setSelectedFile,
     socketConnected:
       !connecting &&
-      !!socketRef.current &&
-      socketRef.current.readyState === WebSocket.OPEN,
+      !!stompClientRef.current &&
+      stompClientRef.current.connected,
   };
 }
