@@ -19,11 +19,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Don't set allowed origins here - let API Gateway handle CORS
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
                 .withSockJS();
         
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+        registry.addEndpoint("/ws");
     }
 }

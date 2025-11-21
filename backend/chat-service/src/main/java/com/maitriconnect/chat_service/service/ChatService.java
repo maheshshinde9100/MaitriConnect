@@ -86,7 +86,8 @@ public class ChatService {
         List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderByTimestampAsc(roomId);
         for (ChatMessage message : messages) {
             if (!message.getSenderId().equals(userId)) {
-                message.setStatus(ChatMessage.MessageStatus.SEEN);
+                message.setStatus(ChatMessage.MessageStatus.READ);
+                message.setReadAt(LocalDateTime.now());
                 chatMessageRepository.save(message);
             }
         }
@@ -125,5 +126,57 @@ public class ChatService {
         return rooms.stream()
                 .map(room -> convertToChatRoomResponse(room, userId))
                 .collect(Collectors.toList());
+    }
+
+    // Enhanced read receipts with timestamps
+    public void markMessageAsDelivered(String messageId) {
+        ChatMessage message = chatMessageRepository.findById(messageId).orElse(null);
+        if (message != null && message.getStatus() == ChatMessage.MessageStatus.SENT) {
+            message.setStatus(ChatMessage.MessageStatus.DELIVERED);
+            message.setDeliveredAt(LocalDateTime.now());
+            chatMessageRepository.save(message);
+        }
+    }
+
+    public void markMessageAsRead(String messageId) {
+        ChatMessage message = chatMessageRepository.findById(messageId).orElse(null);
+        if (message != null) {
+            message.setStatus(ChatMessage.MessageStatus.READ);
+            message.setReadAt(LocalDateTime.now());
+            chatMessageRepository.save(message);
+        }
+    }
+
+    // Batch mark messages as delivered/read
+    public void markRoomMessagesAsDelivered(String roomId, String userId) {
+        List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderByTimestampAsc(roomId);
+        for (ChatMessage message : messages) {
+            if (!message.getSenderId().equals(userId) && 
+                message.getStatus() == ChatMessage.MessageStatus.SENT) {
+                message.setStatus(ChatMessage.MessageStatus.DELIVERED);
+                message.setDeliveredAt(LocalDateTime.now());
+                chatMessageRepository.save(message);
+            }
+        }
+    }
+
+    public void markRoomMessagesAsRead(String roomId, String userId) {
+        List<ChatMessage> messages = chatMessageRepository.findByChatRoomIdOrderByTimestampAsc(roomId);
+        for (ChatMessage message : messages) {
+            if (!message.getSenderId().equals(userId)) {
+                message.setStatus(ChatMessage.MessageStatus.READ);
+                message.setReadAt(LocalDateTime.now());
+                chatMessageRepository.save(message);
+            }
+        }
+    }
+
+    // Add file attachment to message
+    public void addFileAttachment(String messageId, String fileId) {
+        ChatMessage message = chatMessageRepository.findById(messageId).orElse(null);
+        if (message != null) {
+            message.getFileAttachments().add(fileId);
+            chatMessageRepository.save(message);
+        }
     }
 }
