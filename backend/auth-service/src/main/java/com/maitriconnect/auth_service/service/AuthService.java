@@ -108,6 +108,9 @@ public class AuthService {
         if (request.getStatus() != null) {
             user.setStatus(request.getStatus());
         }
+        if (request.getProfilePicture() != null) {
+            user.setProfilePicture(request.getProfilePicture());
+        }
         
         userRepository.save(user);
         return convertToUserProfileResponse(user);
