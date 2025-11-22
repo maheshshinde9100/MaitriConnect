@@ -4,7 +4,8 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { fileService } from "../services/fileService";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "http://localhost:8080"; // REST API through gateway
+const WS_BASE = "http://localhost:8082"; // WebSocket direct to chat-service
 
 export function useChatLogic({ user, token }) {
   const [allUsers, setAllUsers] = useState([]);
@@ -16,9 +17,9 @@ export function useChatLogic({ user, token }) {
   const [typingUser, setTypingUser] = useState(null);
   const [fileAttachments, setFileAttachments] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isConnected, setIsConnected] = useState(false); // Track connection state
 
   const stompClientRef = useRef(null);
-  const [connecting, setConnecting] = useState(false);
   const typingTimeoutRef = useRef(null);
   const roomSubscriptionRef = useRef(null);
 
@@ -42,24 +43,27 @@ export function useChatLogic({ user, token }) {
   useEffect(() => {
     if (!token || !user) return;
 
-    setConnecting(true);
+    console.log('🔌 Initializing STOMP connection to chat-service...');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE}/ws`),
+      webSocketFactory: () => new SockJS(`${WS_BASE}/ws`), // Direct to chat-service
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
+      debug: (str) => {
+        console.log('STOMP Debug:', str);
+      },
       onConnect: () => {
-        console.log('✅ STOMP Connected');
-        setConnecting(false);
+        console.log('✅ STOMP Connected successfully');
+        setIsConnected(true);
       },
       onDisconnect: () => {
         console.log('❌ STOMP Disconnected');
-        setConnecting(false);
+        setIsConnected(false);
       },
       onStompError: (frame) => {
-        console.error('STOMP error:', frame);
-        setConnecting(false);
+        console.error('❌ STOMP error:', frame);
+        setIsConnected(false);
       },
     });
 
@@ -67,96 +71,122 @@ export function useChatLogic({ user, token }) {
     stompClientRef.current = client;
 
     return () => {
+      console.log('🔌 Cleaning up STOMP connection');
       if (roomSubscriptionRef.current) {
         roomSubscriptionRef.current.unsubscribe();
       }
       client.deactivate();
+      setIsConnected(false);
     };
   }, [token, user]);
 
-  // ---- Subscribe to current room when it changes ----
+  // ---- Subscribe to current room when connection OR room changes ----
   useEffect(() => {
-    if (!stompClientRef.current || !currentRoomId || !stompClientRef.current.connected) {
+    // Wait for both connection and room to be ready
+    if (!isConnected || !currentRoomId || !stompClientRef.current) {
+      console.log('⏳ Waiting for connection or room...', { isConnected, currentRoomId });
       return;
     }
 
+    console.log(`🔔 Subscribing to room: ${currentRoomId}`);
+
     // Unsubscribe from previous room
     if (roomSubscriptionRef.current) {
+      console.log('🔕 Unsubscribing from previous room');
       roomSubscriptionRef.current.unsubscribe();
+      roomSubscriptionRef.current = null;
     }
 
     // Subscribe to new room
-    const subscription = stompClientRef.current.subscribe(
-      `/topic/room.${currentRoomId}`,
-      (message) => {
-        const msg = JSON.parse(message.body);
-        console.log('📨 Received message:', msg);
+    try {
+      const subscription = stompClientRef.current.subscribe(
+        `/topic/room.${currentRoomId}`,
+        (message) => {
+          const msg = JSON.parse(message.body);
+          console.log('📨 Received WebSocket message:', msg);
 
-        // Handle typing indicators
-        if (msg.type === "TYPING") {
-          setTypingUser(msg.senderId);
-          return;
-        }
-        if (msg.type === "STOP_TYPING") {
-          setTypingUser(null);
-          return;
-        }
+          // Handle typing indicators
+          if (msg.type === "TYPING") {
+            setTypingUser(msg.senderId);
+            return;
+          }
+          if (msg.type === "STOP_TYPING") {
+            setTypingUser(null);
+            return;
+          }
 
-        // Handle reactions
-        if (msg.type === "REACTION") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === msg.messageId
-                ? { ...m, reactions: msg.reactions || {} }
-                : m
-            )
-          );
-          return;
-        }
+          // Handle reactions
+          if (msg.type === "REACTION") {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === msg.messageId
+                  ? { ...m, reactions: msg.reactions || {} }
+                  : m
+              )
+            );
+            return;
+          }
 
-        // Handle delivered/read receipts
-        if (msg.type === "DELIVERED" || msg.type === "READ") {
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.chatRoomId === msg.chatRoomId && m.senderId === user.userId) {
-                return {
-                  ...m,
-                  status: msg.type,
-                  deliveredAt: msg.type === "DELIVERED" ? new Date().toISOString() : m.deliveredAt,
-                  readAt: msg.type === "READ" ? new Date().toISOString() : m.readAt,
-                };
+          // Handle delivered/read receipts
+          if (msg.type === "DELIVERED" || msg.type === "READ") {
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.chatRoomId === msg.chatRoomId && m.senderId === user.userId) {
+                  return {
+                    ...m,
+                    status: msg.type,
+                    deliveredAt: msg.type === "DELIVERED" ? new Date().toISOString() : m.deliveredAt,
+                    readAt: msg.type === "READ" ? new Date().toISOString() : m.readAt,
+                  };
+                }
+                return m;
+              })
+            );
+            return;
+          }
+
+          // Handle chat messages
+          if (msg.type === "CHAT" || msg.type === "FILE") {
+            console.log('💬 Adding new message to state');
+            setMessages((prev) => {
+              // Prevent duplicates
+              const exists = prev.some(m => m.id === msg.id);
+              if (exists) {
+                console.log('⚠️ Message already exists, skipping');
+                return prev;
               }
-              return m;
-            })
-          );
-          return;
-        }
+              return [...prev, msg];
+            });
+          }
 
-        // Handle chat messages
-        if (msg.type === "CHAT" || msg.type === "FILE") {
-          setMessages((prev) => [...prev, msg]);
+          // Handle join/leave messages
+          if (msg.type === "JOIN" || msg.type === "LEAVE") {
+            setMessages((prev) => [...prev, msg]);
+          }
         }
+      );
 
-        // Handle join/leave messages
-        if (msg.type === "JOIN" || msg.type === "LEAVE") {
-          setMessages((prev) => [...prev, msg]);
-        }
-      }
-    );
+      roomSubscriptionRef.current = subscription;
+      console.log('✅ Successfully subscribed to room:', currentRoomId);
 
-    roomSubscriptionRef.current = subscription;
+    } catch (error) {
+      console.error('❌ Failed to subscribe to room:', error);
+    }
 
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
+      if (roomSubscriptionRef.current) {
+        console.log('🔕 Cleaning up room subscription');
+        roomSubscriptionRef.current.unsubscribe();
+        roomSubscriptionRef.current = null;
       }
     };
-  }, [currentRoomId, user]);
+  }, [isConnected, currentRoomId, user]); // Added isConnected to dependencies
 
   // ---- Selecting a user / opening a chat ----
   const startChat = async (chatUser) => {
     if (!user || !token) return;
 
+    console.log('💬 Starting chat with:', chatUser.username);
     setCurrentChatUser(chatUser);
 
     // 1. Get or create room from backend
@@ -165,6 +195,7 @@ export function useChatLogic({ user, token }) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const room = roomRes.data;
+    console.log('📦 Got room:', room.id);
     setCurrentRoomId(room.id);
 
     // 2. Load historical messages once
@@ -172,6 +203,7 @@ export function useChatLogic({ user, token }) {
       `${API_BASE}/api/chat/messages/direct?user1=${user.userId}&user2=${chatUser.id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    console.log('📜 Loaded', msgsRes.data.length, 'historical messages');
     setMessages(msgsRes.data);
   };
 
@@ -179,6 +211,8 @@ export function useChatLogic({ user, token }) {
   const sendMessage = async (content) => {
     if (!content.trim() && !selectedFile) return;
     if (!currentRoomId || !user || !currentChatUser) return;
+
+    console.log('📤 Sending message...');
 
     let fileId = null;
 
@@ -217,22 +251,25 @@ export function useChatLogic({ user, token }) {
       status: "SENT",
     };
 
-    // Immediately show on sender UI
+    // Immediately show on sender UI (optimistic update)
     setMessages((prev) => [...prev, msg]);
 
     // Clear selected file
     setSelectedFile(null);
 
     // Send via STOMP so receiver sees it instantly
-    if (stompClientRef.current && stompClientRef.current.connected) {
+    if (stompClientRef.current && isConnected) {
       try {
+        console.log('📡 Publishing message via STOMP');
         stompClientRef.current.publish({
           destination: '/app/chat.sendMessage',
           body: JSON.stringify(msg),
         });
       } catch (error) {
-        console.error('Failed to send message via STOMP:', error);
+        console.error('❌ Failed to send message via STOMP:', error);
       }
+    } else {
+      console.warn('⚠️ STOMP not connected, message may not be sent in real-time');
     }
 
     // Also persist via REST API to database
@@ -251,14 +288,15 @@ export function useChatLogic({ user, token }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log('✅ Message saved to database');
     } catch (error) {
-      console.error('Failed to save message to database:', error);
+      console.error('❌ Failed to save message to database:', error);
     }
   };
 
   // ---- Typing indicators with debouncing ----
   const sendTypingIndicator = () => {
-    if (!currentRoomId || !user) return;
+    if (!currentRoomId || !user || !isConnected) return;
 
     // Clear existing timeout
     if (typingTimeoutRef.current) {
@@ -266,7 +304,7 @@ export function useChatLogic({ user, token }) {
     }
 
     // Send typing event
-    if (stompClientRef.current && stompClientRef.current.connected) {
+    if (stompClientRef.current) {
       stompClientRef.current.publish({
         destination: '/app/chat.typing',
         body: JSON.stringify({
@@ -279,7 +317,7 @@ export function useChatLogic({ user, token }) {
 
     // Set timeout to send stop typing after 3 seconds
     typingTimeoutRef.current = setTimeout(() => {
-      if (stompClientRef.current && stompClientRef.current.connected) {
+      if (stompClientRef.current && isConnected) {
         stompClientRef.current.publish({
           destination: '/app/chat.stopTyping',
           body: JSON.stringify({
@@ -294,21 +332,19 @@ export function useChatLogic({ user, token }) {
 
   // ---- Reactions ----
   const handleReaction = (messageId, emoji) => {
-    if (!user || !stompClientRef.current) return;
+    if (!user || !stompClientRef.current || !isConnected) return;
 
-    if (stompClientRef.current.connected) {
-      stompClientRef.current.publish({
-        destination: '/app/chat.reaction',
-        body: JSON.stringify({
-          type: "REACTION",
-          messageId,
-          userId: user.userId,
-          username: user.username,
-          emoji,
-          action: "toggle",
-        }),
-      });
-    }
+    stompClientRef.current.publish({
+      destination: '/app/chat.reaction',
+      body: JSON.stringify({
+        type: "REACTION",
+        messageId,
+        userId: user.userId,
+        username: user.username,
+        emoji,
+        action: "toggle",
+      }),
+    });
   };
 
   // ---- User search / filtering ----
@@ -342,9 +378,6 @@ export function useChatLogic({ user, token }) {
     fileAttachments,
     selectedFile,
     setSelectedFile,
-    socketConnected:
-      !connecting &&
-      !!stompClientRef.current &&
-      stompClientRef.current.connected,
+    socketConnected: isConnected,
   };
 }
