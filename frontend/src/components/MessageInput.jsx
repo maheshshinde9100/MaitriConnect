@@ -1,134 +1,155 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Send, Paperclip, X, Smile, Image as ImageIcon } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function MessageInput({ onSend, onFileSelect, selectedFile, onClearFile }) {
-  const [input, setInput] = useState("");
-  const textareaRef = useRef();
-  const fileInputRef = useRef();
+  const [message, setMessage] = useState("");
 
-  const handleInput = (e) => {
-    setInput(e.target.value);
-    textareaRef.current.style.height = "auto";
-    textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
+  const handleSend = () => {
+    if (message.trim() || selectedFile) {
+      onSend(message);
+      setMessage("");
+    }
   };
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (input.trim() === "" && !selectedFile) return;
-    onSend(input);
-    setInput("");
-    textareaRef.current.style.height = "auto";
-  };
-
-  const handleFileClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file && onFileSelect) {
-      onFileSelect(file);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
   return (
-    <div className="p-4">
-      <form onSubmit={handleSend} className="space-y-3">
+    <div
+      style={{
+        padding: 'var(--space-4)',
+        borderTop: '1px solid var(--border-primary)',
+        background: 'var(--bg-primary)',
+      }}
+    >
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         {/* File Preview */}
-        <AnimatePresence>
-          {selectedFile && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ background: 'var(--bg-hover)' }}
-              >
-                <ImageIcon className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                  {selectedFile.name}
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  {(selectedFile.size / 1024).toFixed(2)} KB
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClearFile}
-                className="p-2 rounded-lg hover-lift"
-                style={{ background: 'var(--bg-hover)' }}
-              >
-                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Input Container */}
-        <div
-          className="flex items-end gap-2 p-2 rounded-2xl"
-          style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
-        >
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1 pb-2">
-            <button
-              type="button"
-              onClick={handleFileClick}
-              className="p-2 rounded-lg hover-lift"
-              style={{ background: 'var(--bg-hover)' }}
-              title="Attach file"
-            >
-              <Paperclip className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={handleFileChange}
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-            />
-          </div>
-
-          {/* Text Input */}
-          <textarea
-            ref={textareaRef}
-            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none"
-            style={{ color: 'var(--text-primary)', maxHeight: '120px' }}
-            placeholder="Type a message..."
-            value={input}
-            onChange={handleInput}
-            rows={1}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(e);
-              }
-            }}
-          />
-
-          {/* Send Button */}
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-2.5 rounded-xl btn-primary flex-shrink-0"
-            disabled={!input.trim() && !selectedFile}
+        {selectedFile && (
+          <div
+            className="animate-slide-up"
             style={{
-              opacity: !input.trim() && !selectedFile ? 0.5 : 1,
-              cursor: !input.trim() && !selectedFile ? 'not-allowed' : 'pointer',
+              marginBottom: 'var(--space-3)',
+              padding: 'var(--space-3)',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-3)',
             }}
           >
-            <Send className="w-4 h-4" />
-          </motion.button>
+            <ImageIcon size={20} style={{ color: 'var(--primary-500)' }} />
+            <div style={{ flex: 1 }}>
+              <p className="font-medium" style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                {selectedFile.name}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <button
+              onClick={onClearFile}
+              style={{
+                padding: 'var(--space-1)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 'var(--space-2)',
+          }}
+        >
+          {/* File Upload Button */}
+          <label
+            style={{
+              padding: 'var(--space-3)',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'all 0.2s',
+              border: '1px solid var(--border-primary)',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+          >
+            <Paperclip size={20} style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="file"
+              style={{ display: 'none' }}
+              onChange={(e) => onFileSelect(e.target.files[0])}
+            />
+          </label>
+
+          {/* Message Input */}
+          <div style={{ flex: 1, position: 'relative' }}>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type a message..."
+              className="input"
+              style={{
+                minHeight: '48px',
+                maxHeight: '120px',
+                resize: 'none',
+                paddingRight: 'var(--space-10)',
+              }}
+              rows={1}
+            />
+
+            {/* Emoji Button */}
+            <button
+              style={{
+                position: 'absolute',
+                right: 'var(--space-3)',
+                bottom: 'var(--space-3)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 'var(--space-1)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <Smile size={20} style={{ color: 'var(--text-muted)' }} />
+            </button>
+          </div>
+
+          {/* Send Button */}
+          <button
+            onClick={handleSend}
+            disabled={!message.trim() && !selectedFile}
+            className="btn-primary"
+            style={{
+              height: '48px',
+              width: '48px',
+              padding: 0,
+              flexShrink: 0,
+              borderRadius: 'var(--radius-md)',
+              opacity: (!message.trim() && !selectedFile) ? 0.5 : 1,
+              cursor: (!message.trim() && !selectedFile) ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <Send size={20} />
+          </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

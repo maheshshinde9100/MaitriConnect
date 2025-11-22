@@ -1,102 +1,67 @@
-import { useState } from 'react';
-import { Download, File, X, ZoomIn, FileText } from 'lucide-react';
-import { fileService } from '../services/fileService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, Download, Image as ImageIcon } from "lucide-react";
 
-export default function FilePreview({ file, onClose }) {
-    const [showLightbox, setShowLightbox] = useState(false);
-    const isImage = fileService.isImageFile(file.fileType);
-    const downloadUrl = fileService.getDownloadUrl(file.fileId);
+export default function FilePreview({ fileId, fileData }) {
+    if (!fileData) {
+        return (
+            <div style={{
+                padding: 'var(--space-3)',
+                background: 'var(--bg-tertiary)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+            }}>
+                <FileText size={20} />
+                <span style={{ fontSize: '14px' }}>Loading file...</span>
+            </div>
+        );
+    }
 
-    const handleDownload = () => {
-        window.open(downloadUrl, '_blank');
-    };
+    const isImage = fileData.fileType?.startsWith('image/');
 
     return (
-        <>
-            <div className="file-preview rounded-xl overflow-hidden max-w-xs">
-                {isImage ? (
-                    <div className="relative group">
-                        <img
-                            src={downloadUrl}
-                            alt={file.fileName}
-                            className="w-full h-auto rounded-lg cursor-pointer"
-                            onClick={() => setShowLightbox(true)}
-                            style={{ maxHeight: '300px', objectFit: 'cover' }}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                            <button
-                                onClick={() => setShowLightbox(true)}
-                                className="opacity-0 group-hover:opacity-100 p-3 rounded-full transition-all"
-                                style={{ background: 'rgba(0,0,0,0.5)' }}
-                            >
-                                <ZoomIn className="w-5 h-5 text-white" />
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div
-                        className="flex items-center gap-3 p-3 rounded-lg"
-                        style={{ background: 'var(--bg-hover)' }}
-                    >
-                        <div
-                            className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'var(--bg-tertiary)' }}
-                        >
-                            <FileText className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                                {file.fileName}
-                            </p>
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                {fileService.formatFileSize(file.fileSize)}
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                <button
-                    onClick={handleDownload}
-                    className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium hover-lift"
+        <div style={{
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            maxWidth: '300px',
+        }}>
+            {isImage ? (
+                <img
+                    src={`http://localhost:8080/api/chat/files/download/${fileId}`}
+                    alt={fileData.originalFileName}
                     style={{
-                        background: 'var(--bg-hover)',
-                        color: 'var(--text-secondary)',
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
                     }}
-                >
-                    <Download className="w-4 h-4" />
-                    Download
-                </button>
-            </div>
-
-            {/* Lightbox for images */}
-            <AnimatePresence>
-                {showLightbox && isImage && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4"
-                        onClick={() => setShowLightbox(false)}
+                />
+            ) : (
+                <div style={{
+                    padding: 'var(--space-3)',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-3)',
+                }}>
+                    <FileText size={24} style={{ color: 'var(--primary-500)' }} />
+                    <div style={{ flex: 1 }}>
+                        <p className="font-medium truncate" style={{ fontSize: '14px' }}>
+                            {fileData.originalFileName}
+                        </p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                            {(fileData.fileSize / 1024).toFixed(1)} KB
+                        </p>
+                    </div>
+                    <a
+                        href={`http://localhost:8080/api/chat/files/download/${fileId}`}
+                        download
+                        style={{ padding: 'var(--space-2)', color: 'var(--text-secondary)' }}
                     >
-                        <button
-                            onClick={() => setShowLightbox(false)}
-                            className="absolute top-4 right-4 p-3 rounded-full hover-lift"
-                            style={{ background: 'rgba(255,255,255,0.1)' }}
-                        >
-                            <X className="w-6 h-6 text-white" />
-                        </button>
-                        <motion.img
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            src={downloadUrl}
-                            alt={file.fileName}
-                            className="max-w-full max-h-full object-contain rounded-lg"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
+                        <Download size={18} />
+                    </a>
+                </div>
+            )}
+        </div>
     );
 }

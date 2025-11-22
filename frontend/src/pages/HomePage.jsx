@@ -7,7 +7,7 @@ import MessageInput from "../components/MessageInput";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 const HomePage = () => {
   const { user, isAuthenticated, logout, initializing } = useAuthContext();
@@ -42,7 +42,12 @@ const HomePage = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      overflow: 'hidden',
+      background: 'var(--bg-app)'
+    }}>
       {/* Sidebar */}
       <Sidebar
         user={user}
@@ -56,48 +61,71 @@ const HomePage = () => {
       />
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col relative">
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {currentChatUser ? (
           <>
-            {/* Chat Header */}
             <ChatHeader chatUser={currentChatUser} />
 
-            {/* Messages Container */}
-            <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--bg-secondary)' }}>
-              <MessageList
-                messages={messages}
-                currentUser={user}
-                typingUser={typingUser}
-                onReact={handleReaction}
-                fileAttachments={fileAttachments}
-              />
-            </div>
+            <MessageList
+              messages={messages}
+              currentUser={user}
+              typingUser={typingUser}
+              onReact={handleReaction}
+              fileAttachments={fileAttachments}
+            />
 
-            {/* Message Input */}
-            <div style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
-              <MessageInput
-                onSend={sendMessage}
-                onFileSelect={setSelectedFile}
-                selectedFile={selectedFile}
-                onClearFile={() => setSelectedFile(null)}
-              />
-            </div>
+            <MessageInput
+              onSend={sendMessage}
+              onFileSelect={setSelectedFile}
+              selectedFile={selectedFile}
+              onClearFile={() => setSelectedFile(null)}
+            />
           </>
         ) : (
           /* Empty State */
-          <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="text-center px-8 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 gradient-primary">
-                <MessageSquare className="w-12 h-12 text-white" />
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--bg-app)',
+          }}>
+            <div style={{ textAlign: 'center', maxWidth: '400px', padding: 'var(--space-6)' }} className="animate-fade-in">
+              <div style={{
+                width: '120px',
+                height: '120px',
+                margin: '0 auto var(--space-6)',
+                background: 'linear-gradient(135deg, var(--primary-600), var(--primary-700))',
+                borderRadius: 'var(--radius-xl)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 20px 40px rgba(107, 110, 245, 0.3)',
+              }}>
+                <MessageCircle size={60} style={{ color: 'white' }} />
               </div>
-              <h2 className="text-3xl font-bold mb-3 gradient-text">
+
+              <h1 className="font-bold text-3xl" style={{
+                color: 'var(--text-primary)',
+                marginBottom: 'var(--space-3)',
+              }}>
                 Welcome to MaitriConnect
-              </h2>
-              <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Your conversations, elevated
+              </h1>
+
+              <p style={{
+                fontSize: '16px',
+                color: 'var(--text-secondary)',
+                marginBottom: 'var(--space-2)',
+                lineHeight: 1.6,
+              }}>
+                Start a conversation by selecting a contact from the sidebar
               </p>
-              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                Select a contact from the sidebar to start chatting
+
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-tertiary)',
+              }}>
+                Real-time messaging • File sharing • Reactions
               </p>
             </div>
           </div>

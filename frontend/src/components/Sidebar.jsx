@@ -1,4 +1,4 @@
-import { Search, LogOut, Users, Settings } from "lucide-react";
+import { Search, LogOut, MessageSquare, User, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar({
@@ -13,88 +13,93 @@ export default function Sidebar({
 }) {
   return (
     <aside
-      className="w-80 flex flex-col border-r"
+      className="flex flex-col"
       style={{
-        background: 'var(--bg-secondary)',
-        borderColor: 'var(--border-color)',
+        width: '360px',
+        background: 'var(--bg-primary)',
+        borderRight: '1px solid var(--border-primary)',
       }}
     >
-      {/* Sidebar Header */}
-      <div
-        className="p-4 border-b"
-        style={{ borderColor: 'var(--border-color)' }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center font-bold text-white">
+      {/* User Profile Header */}
+      <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-secondary)' }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="flex items-center" style={{ gap: 'var(--space-3)' }}>
+            <div className="avatar avatar-md">
               {user?.username?.[0]?.toUpperCase() || 'U'}
             </div>
             <div>
-              <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
+              <h2 className="font-semibold" style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '2px' }}>
                 {user?.username || 'User'}
               </h2>
-              <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
-                <span className="w-2 h-2 rounded-full status-online"></span>
-                Online
-              </p>
+              <div className="flex items-center" style={{ gap: 'var(--space-1)' }}>
+                <div className="status status-online"></div>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Active now</span>
+              </div>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="p-2 rounded-lg hover-lift"
-            style={{ background: 'var(--bg-tertiary)' }}
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-          </button>
+
+          <div className="flex items-center" style={{ gap: 'var(--space-2)' }}>
+            <button onClick={logout} className="btn-ghost" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }} title="Logout">
+              <LogOut size={18} style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
+        <div style={{ position: 'relative' }}>
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-            style={{ color: 'var(--text-tertiary)' }}
+            size={18}
+            style={{
+              position: 'absolute',
+              left: 'var(--space-3)',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+            }}
           />
           <input
             type="text"
             placeholder="Search conversations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm chat-input"
+            className="input"
+            style={{
+              paddingLeft: 'var(--space-10)',
+              fontSize: '14px',
+            }}
           />
         </div>
       </div>
 
-      {/* Contacts Header */}
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-            Contacts
+      {/* Conversations Header */}
+      <div
+        className="flex items-center justify-between"
+        style={{
+          padding: '14px var(--space-4)',
+          borderBottom: '1px solid var(--border-secondary)',
+        }}
+      >
+        <div className="flex items-center" style={{ gap: 'var(--space-2)' }}>
+          <MessageSquare size={16} style={{ color: 'var(--text-secondary)' }} />
+          <span className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+            All Messages
           </span>
         </div>
-        <span
-          className="text-xs px-2 py-0.5 rounded-full"
-          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
-        >
-          {users.length}
-        </span>
+        <span className="badge badge-primary">{users.length}</span>
       </div>
 
-      {/* User List */}
-      <div className="flex-1 overflow-y-auto px-2">
+      {/* Contacts List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-2)' }}>
         {loading ? (
-          <div className="space-y-2 p-2">
+          <div style={{ padding: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="skeleton h-16 rounded-xl"></div>
+              <div key={i} className="skeleton" style={{ height: '64px', borderRadius: 'var(--radius-md)' }}></div>
             ))}
           </div>
         ) : users.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-              No contacts found
-            </p>
+          <div style={{ textAlign: 'center', padding: 'var(--space-12) var(--space-4)' }}>
+            <User size={48} style={{ margin: '0 auto var(--space-4)', opacity: 0.3, color: 'var(--text-tertiary)' }} />
+            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>No contacts found</p>
           </div>
         ) : (
           <AnimatePresence>
@@ -105,47 +110,82 @@ export default function Sidebar({
                   key={u.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.03 }}
                   onClick={() => onSelectUser(u)}
-                  className={`w-full p-3 rounded-xl mb-1 flex items-center gap-3 text-left transition-all ${isActive ? 'glass-strong' : 'hover:bg-opacity-50'
-                    }`}
                   style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-3)',
+                    padding: 'var(--space-3)',
+                    marginBottom: 'var(--space-1)',
+                    borderRadius: 'var(--radius-md)',
                     background: isActive ? 'var(--bg-active)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                  }}
+                  className={!isActive ? 'hover-bg' : ''}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  <div className="relative">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center font-semibold text-white"
-                      style={{
-                        background: isActive
-                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                          : 'var(--bg-tertiary)',
-                      }}
-                    >
-                      {u.username?.[0]?.toUpperCase() || 'U'}
+                  {/* Avatar */}
+                  <div style={{ position: 'relative' }}>
+                    <div className="avatar avatar-lg" style={{ background: isActive ? 'white' : 'linear-gradient(135deg, var(--primary-500), var(--primary-700))' }}>
+                      <span style={{ color: isActive ? 'var(--primary-600)' : 'white' }}>
+                        {u.username?.[0]?.toUpperCase() || 'U'}
+                      </span>
                     </div>
-                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 status-online"
-                      style={{ borderColor: 'var(--bg-secondary)' }}
-                    ></span>
+                    <div
+                      className="status status-online"
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        border: `3px solid var(--bg-primary)`,
+                      }}
+                    ></div>
                   </div>
-                  <div className="flex-1 min-w-0">
+
+                  {/* User Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h3
-                      className="font-medium text-sm truncate"
-                      style={{ color: 'var(--text-primary)' }}
+                      className="font-medium truncate"
+                      style={{
+                        fontSize: '15px',
+                        color: isActive ? 'white' : 'var(--text-primary)',
+                        marginBottom: '2px',
+                      }}
                     >
                       {u.username}
                     </h3>
                     <p
-                      className="text-xs truncate"
-                      style={{ color: 'var(--text-tertiary)' }}
+                      className="text-sm truncate"
+                      style={{
+                        color: isActive ? 'rgba(255,255,255,0.8)' : 'var(--text-tertiary)',
+                      }}
                     >
                       {u.firstName && u.lastName
                         ? `${u.firstName} ${u.lastName}`
-                        : 'Available'}
+                        : 'Click to chat'}
                     </p>
                   </div>
+
+                  {/* Active Indicator */}
                   {isActive && (
-                    <div className="w-2 h-2 rounded-full gradient-primary"></div>
+                    <div
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'white',
+                      }}
+                    ></div>
                   )}
                 </motion.button>
               );
