@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Disconnected</div>
+    <div id="logs" style="border: 1px solid black; padding: 10px; margin-top: 10px; height: 400px; overflow-y: scroll;"></div>
+    
+    <div style="margin-top: 20px;">
+        <input type="text" id="roomId" placeholder="Room ID" style="width: 300px;">
+        <button onclick="subscribeToRoom()">Subscribe to Room</button>
+    </div>
+    
+    <div style="margin-top: 10px;">
+        <input type="text" id="message" placeholder="Message" style="width: 300px;">
+        <button onclick="sendTestMessage()">Send Test Message</button>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let currentSubscription = null;
+        const logsDiv = document.getElementById('logs');
+        const statusDiv = document.getElementById('status');
+
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function connect() {
+            log('🔌 Connecting to WebSocket...');
+            
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = StompJs.Stomp.over(socket);
+            
+            stompClient.debug = (str) => {
+                log('DEBUG: ' + str);
+            };
+
+            stompClient.connect({}, 
+                (frame) => {
+                    log('✅ Connected to WebSocket!');
+                    statusDiv.textContent = 'Connected';
+                    statusDiv.style.color = 'green';
+                },
+                (error) => {
+                    log('❌ Connection error: ' + error);
+                    statusDiv.textContent = 'Error';
+                    statusDiv.style.color = 'red';
+                }
+            );
+        }
+
+        function subscribeToRoom() {
+            const roomId = document.getElementById('roomId').value;
+            if (!roomId) {
+                alert('Please enter a room ID');
+                return;
+            }
+
+            if (!stompClient || !stompClient.connected) {
+                alert('Not connected to WebSocket');
+                return;
+            }
+
+            if (currentSubscription) {
+                log('🔕 Unsubscribing from previous room');
+                currentSubscription.unsubscribe();
+            }
+
+            log(`🔔 Subscribing to /topic/room.${roomId}`);
+            
+            currentSubscription = stompClient.subscribe(`/topic/room.${roomId}`, (message) => {
+                log('📨 Received message: ' + message.body);
+                try {
+                    const msg = JSON.parse(message.body);
+                    log('📨 Parsed: ' + JSON.stringify(msg, null, 2));
+                } catch (e) {
+                    log('❌ Failed to parse message');
+                }
+            });
+
+            log('✅ Subscribed successfully');
+        }
+
+        function sendTestMessage() {
+            const roomId = document.getElementById('roomId').value;
+            const messageText = document.getElementById('message').value;
+            
+            if (!roomId || !messageText) {
+                alert('Please enter room ID and message');
+                return;
+            }
+
+            if (!stompClient || !stompClient.connected) {
+                alert('Not connected to WebSocket');
+                return;
+            }
+
+            const testMessage = {
+                senderId: 'test-user',
+                senderUsername: 'Test User',
+                receiverId: 'other-user',
+                content: messageText,
+                chatRoomId: roomId,
+                type: 'CHAT',
+                timestamp: new Date().toISOString(),
+                status: 'SENT'
+            };
+
+            log('📤 Sending message: ' + JSON.stringify(testMessage));
+            
+            stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(testMessage));
+            
+            log('✅ Message sent');
+        }
+
+        // Auto-connect on page load
+        window.onload = () => {
+            connect();
+        };
+    </script>
+</body>
+</html>
