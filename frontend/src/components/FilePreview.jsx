@@ -148,8 +148,8 @@ export default function FilePreview({ fileId, fileData }) {
                 <div style={{
                     position: 'fixed',
                     inset: 0,
-                    zIndex: 100,
-                    background: 'rgba(0,0,0,0.8)',
+                    zIndex: 1000,
+                    background: 'rgba(0,0,0,0.85)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',
@@ -158,6 +158,9 @@ export default function FilePreview({ fileId, fileData }) {
                 }} onClick={() => setShowPreview(false)}>
                     <div style={{
                         position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         maxWidth: '90vw',
                         maxHeight: '90vh',
                     }} onClick={e => e.stopPropagation()}>
@@ -166,11 +169,12 @@ export default function FilePreview({ fileId, fileData }) {
                             style={{
                                 position: 'absolute',
                                 top: '-40px',
-                                right: 0,
+                                right: '-10px',
                                 background: 'transparent',
                                 border: 'none',
                                 color: 'white',
                                 cursor: 'pointer',
+                                padding: '8px',
                             }}
                         >
                             <X size={24} />
@@ -191,8 +195,10 @@ export default function FilePreview({ fileId, fileData }) {
                                 style={{
                                     maxWidth: '100%',
                                     maxHeight: '90vh',
+                                    objectFit: 'contain',
                                     borderRadius: 'var(--radius-lg)',
                                     boxShadow: 'var(--shadow-2xl)',
+                                    display: 'block',
                                 }}
                             />
                         )}
