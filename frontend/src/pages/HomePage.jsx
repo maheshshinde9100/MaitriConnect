@@ -6,11 +6,13 @@ import MessageList from "../components/MessageList";
 import MessageInput from "../components/MessageInput";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { MessageCircle, Menu } from "lucide-react";
 
 const HomePage = () => {
   const { user, isAuthenticated, logout, initializing } = useAuthContext();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
 
   const {
     filteredUsers,
@@ -32,10 +34,27 @@ const HomePage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(true);
+      else if (mobile && isSidebarOpen) setIsSidebarOpen(false);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!initializing && !isAuthenticated) {
       navigate("/auth");
     }
   }, [initializing, isAuthenticated, navigate]);
+
+  const handleSelectUser = (u) => {
+    startChat(u);
+    if (isMobile) setIsSidebarOpen(false);
+  };
 
   if (initializing) {
     return <LoadingIndicator />;
@@ -46,7 +65,8 @@ const HomePage = () => {
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
-      background: 'var(--bg-app)'
+      background: 'var(--bg-app)',
+      position: 'relative'
     }}>
       {/* Sidebar */}
       <Sidebar
@@ -55,13 +75,37 @@ const HomePage = () => {
         loading={loadingUsers}
         search={search}
         setSearch={setSearch}
-        onSelectUser={startChat}
+        onSelectUser={handleSelectUser}
         logout={logout}
         currentChatUser={currentChatUser}
+        isMobile={isMobile}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main Chat Area */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        {/* Mobile Header / Menu Button */}
+        {isMobile && !isSidebarOpen && (
+          <div style={{
+            padding: 'var(--space-3)',
+            background: 'var(--bg-primary)',
+            borderBottom: '1px solid var(--border-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)'
+          }}>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="btn-ghost"
+              style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }}
+            >
+              <Menu size={24} style={{ color: 'var(--text-primary)' }} />
+            </button>
+            <span className="font-semibold text-lg">MaitriConnect</span>
+          </div>
+        )}
+
         {currentChatUser ? (
           <>
             <ChatHeader chatUser={currentChatUser} />
