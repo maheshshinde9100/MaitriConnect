@@ -1,5 +1,6 @@
 import { Search, LogOut, MessageSquare, User, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Sidebar({
   user,
@@ -14,9 +15,7 @@ export default function Sidebar({
   isOpen,
   onClose
 }) {
-  // If mobile and not open, don't render anything (or render hidden)
-  // But for animation we might want to keep it mounted. 
-  // Let's use simple conditional rendering for now or CSS transform.
+  const navigate = useNavigate();
 
   const sidebarStyle = isMobile ? {
     position: 'absolute',
@@ -61,11 +60,29 @@ export default function Sidebar({
         style={sidebarStyle}
       >
         {/* User Profile Header */}
-        <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-secondary)' }}>
+        <div
+          style={{
+            padding: 'var(--space-4)',
+            borderBottom: '1px solid var(--border-secondary)',
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate('/profile')}
+          className="hover-bg"
+        >
           <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-4)' }}>
             <div className="flex items-center" style={{ gap: 'var(--space-3)' }}>
-              <div className="avatar avatar-md">
-                {user?.username?.[0]?.toUpperCase() || 'U'}
+              <div className="avatar avatar-md" style={{ overflow: 'hidden' }}>
+                {user?.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt={user.username}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                )}
               </div>
               <div>
                 <h2 className="font-semibold" style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '2px' }}>
@@ -80,18 +97,18 @@ export default function Sidebar({
 
             <div className="flex items-center" style={{ gap: 'var(--space-2)' }}>
               {isMobile && (
-                <button onClick={onClose} className="btn-ghost" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }}>
+                <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="btn-ghost" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }}>
                   <X size={20} style={{ color: 'var(--text-secondary)' }} />
                 </button>
               )}
-              <button onClick={logout} className="btn-ghost" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }} title="Logout">
+              <button onClick={(e) => { e.stopPropagation(); logout(); }} className="btn-ghost" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }} title="Logout">
                 <LogOut size={18} style={{ color: 'var(--text-secondary)' }} />
               </button>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
             <Search
               size={18}
               style={{
@@ -194,10 +211,18 @@ export default function Sidebar({
                   >
                     {/* Avatar */}
                     <div style={{ position: 'relative' }}>
-                      <div className="avatar avatar-lg" style={{ background: isActive ? 'white' : 'linear-gradient(135deg, var(--primary-500), var(--primary-700))' }}>
-                        <span style={{ color: isActive ? 'var(--primary-600)' : 'white' }}>
-                          {u.username?.[0]?.toUpperCase() || 'U'}
-                        </span>
+                      <div className="avatar avatar-lg" style={{ background: isActive ? 'white' : 'linear-gradient(135deg, var(--primary-500), var(--primary-700))', overflow: 'hidden' }}>
+                        {u.profilePicture ? (
+                          <img
+                            src={u.profilePicture}
+                            alt={u.username}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <span style={{ color: isActive ? 'var(--primary-600)' : 'white' }}>
+                            {u.username?.[0]?.toUpperCase() || 'U'}
+                          </span>
+                        )}
                       </div>
                       <div
                         className="status status-online"
