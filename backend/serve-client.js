@@ -32,7 +32,7 @@ const server = http.createServer((req, res) => {
     }
 
     // Default to chat-client.html if no specific file requested
-    let filePath = req.url === '/' ? '/chat-client.html' : req.url;
+    let filePath = req.url === '/' ? '/test-websocket.html' : req.url;
     filePath = path.join(__dirname, filePath);
 
     // Get file extension
@@ -60,7 +60,7 @@ server.listen(PORT, () => {
     console.log(`🚀 Chat Client Server running at http://localhost:${PORT}`);
     console.log(`📱 Open http://localhost:${PORT}/chat-client.html in your browser`);
     console.log('⏹️  Press Ctrl+C to stop the server');
-    
+
     // Automatically open the browser (Windows)
     exec(`start http://localhost:${PORT}/chat-client.html`, (error) => {
         if (error) {
