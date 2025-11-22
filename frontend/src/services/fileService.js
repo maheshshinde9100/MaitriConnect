@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE = 'http://localhost:8080';
 
 export const fileService = {
-  async uploadFile(file, userId, chatRoomId, onProgress) {
+  async uploadFile(file, userId, chatRoomId, onProgress, token) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('userId', userId);
@@ -14,6 +14,7 @@ export const fileService = {
       const response = await axios.post(`${API_BASE}/api/chat/files/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
         },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -33,9 +34,13 @@ export const fileService = {
     return `${API_BASE}/api/chat/files/download/${fileId}`;
   },
 
-  async getFileMetadata(fileId) {
+  async getFileMetadata(fileId, token) {
     try {
-      const response = await axios.get(`${API_BASE}/api/chat/files/metadata/${fileId}`);
+      const response = await axios.get(`${API_BASE}/api/chat/files/metadata/${fileId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching file metadata:', error);

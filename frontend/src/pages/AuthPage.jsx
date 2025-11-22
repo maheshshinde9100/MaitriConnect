@@ -82,12 +82,11 @@ const AuthPage = () => {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
       background: 'var(--bg-app)',
       padding: 'var(--space-4)',
+      overflowY: 'auto'
     }}>
-      <div style={{ width: '100%', maxWidth: '480px' }} className="animate-scale-in">
+      <div style={{ width: '100%', maxWidth: '480px', margin: 'auto' }} className="animate-scale-in">
         {/* Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
           <div style={{

@@ -33,10 +33,14 @@ export function useChatLogic({ user, token }) {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
+        console.log('👥 Fetched users:', res.data.length);
         setAllUsers(res.data);
         setLoadingUsers(false);
       })
-      .catch(() => setLoadingUsers(false));
+      .catch((err) => {
+        console.error('❌ Failed to fetch users:', err);
+        setLoadingUsers(false);
+      });
   }, [token]);
 
   // ---- STOMP WebSocket connection ----
@@ -148,6 +152,26 @@ export function useChatLogic({ user, token }) {
           // Handle chat messages
           if (msg.type === "CHAT" || msg.type === "FILE") {
             console.log('💬 Adding new message to state');
+
+            // Fetch file metadata if message has file attachments
+            if (msg.fileAttachments && msg.fileAttachments.length > 0) {
+              msg.fileAttachments.forEach(async (fileId) => {
+                // Only fetch if we don't already have it
+                if (!fileAttachments[fileId]) {
+                  try {
+                    const metadata = await fileService.getFileMetadata(fileId, token);
+                    setFileAttachments((prev) => ({
+                      ...prev,
+                      [fileId]: metadata,
+                    }));
+                    console.log('📎 Fetched file metadata for:', fileId);
+                  } catch (error) {
+                    console.error('Failed to fetch file metadata:', error);
+                  }
+                }
+              });
+            }
+
             setMessages((prev) => {
               // Prevent duplicates
               const exists = prev.some(m => m.id === msg.id);
@@ -204,7 +228,28 @@ export function useChatLogic({ user, token }) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     console.log('📜 Loaded', msgsRes.data.length, 'historical messages');
-    setMessages(msgsRes.data);
+
+    const historicalMessages = msgsRes.data;
+    setMessages(historicalMessages);
+
+    // Fetch metadata for any files in historical messages
+    historicalMessages.forEach(msg => {
+      if (msg.fileAttachments && msg.fileAttachments.length > 0) {
+        msg.fileAttachments.forEach(async (fileId) => {
+          if (!fileAttachments[fileId]) {
+            try {
+              const metadata = await fileService.getFileMetadata(fileId, token);
+              setFileAttachments((prev) => ({
+                ...prev,
+                [fileId]: metadata,
+              }));
+            } catch (error) {
+              console.error('Failed to fetch historical file metadata:', error);
+            }
+          }
+        });
+      }
+    });
   };
 
   // ---- Sending a message ----
@@ -223,7 +268,8 @@ export function useChatLogic({ user, token }) {
           selectedFile,
           user.userId,
           currentRoomId,
-          (progress) => console.log(`Upload progress: ${progress}%`)
+          (progress) => console.log(`Upload progress: ${progress}%`),
+          token
         );
         fileId = fileResponse.fileId;
 
@@ -251,13 +297,14 @@ export function useChatLogic({ user, token }) {
       status: "SENT",
     };
 
-    // Immediately show on sender UI (optimistic update)
-    setMessages((prev) => [...prev, msg]);
-
     // Clear selected file
     setSelectedFile(null);
 
-    // Send via STOMP so receiver sees it instantly
+    // Logic: 
+    // 1. If connected via WebSocket, send via STOMP. The server will save and broadcast it back.
+    //    We do NOT add it to state here, we wait for the broadcast to avoid duplicates.
+    // 2. If NOT connected, send via REST API and manually add to state.
+
     if (stompClientRef.current && isConnected) {
       try {
         console.log('📡 Publishing message via STOMP');
@@ -267,30 +314,34 @@ export function useChatLogic({ user, token }) {
         });
       } catch (error) {
         console.error('❌ Failed to send message via STOMP:', error);
+        alert("Failed to send message. Please try again.");
       }
     } else {
-      console.warn('⚠️ STOMP not connected, message may not be sent in real-time');
-    }
+      console.warn('⚠️ STOMP not connected, falling back to REST API');
 
-    // Also persist via REST API to database
-    try {
-      await axios.post(
-        `${API_BASE}/api/chat/messages`,
-        {
-          senderId: user.userId,
-          receiverId: currentChatUser.id,
-          content: content.trim(),
-          chatRoomId: currentRoomId,
-          type: fileId ? "FILE" : "CHAT",
-          fileAttachments: fileId ? [fileId] : [],
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log('✅ Message saved to database');
-    } catch (error) {
-      console.error('❌ Failed to save message to database:', error);
+      // Fallback: Persist via REST API
+      try {
+        const res = await axios.post(
+          `${API_BASE}/api/chat/messages`,
+          {
+            senderId: user.userId,
+            receiverId: currentChatUser.id,
+            content: content.trim(),
+            chatRoomId: currentRoomId,
+            type: fileId ? "FILE" : "CHAT",
+            fileAttachments: fileId ? [fileId] : [],
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log('✅ Message saved via REST');
+        // Manually add to state since we won't get a WebSocket broadcast
+        setMessages((prev) => [...prev, res.data]);
+      } catch (error) {
+        console.error('❌ Failed to save message via REST:', error);
+        alert("Failed to send message. Please check your connection.");
+      }
     }
   };
 
